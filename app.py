@@ -1,4 +1,10 @@
-from flask import Flask, render_template, request
+from flask import (
+    Flask,
+    render_template,
+    request,
+    session
+)
+
 
 from modules.sheets import (
     get_students,
@@ -7,16 +13,26 @@ from modules.sheets import (
     color_attendance
 )
 
+
 from modules.qr_generator import create_qr
 
-from modules.security import check_token
+
+from modules.security import (
+    create_token,
+    check_token
+)
+
 
 
 app = Flask(__name__)
 
 
+app.secret_key = "attendance-secret-key"
+
+
+
 # ==========================
-# STUDENT ATTENDANCE
+# STUDENT PAGE
 # ==========================
 
 @app.route("/", methods=["GET", "POST"])
@@ -24,31 +40,40 @@ def home():
 
     message = ""
 
-    token = request.args.get("token")
 
+    token = request.args.get(
+        "token"
+    )
 
-    # Require QR token
 
     if not token:
+
         return "❌ Please scan the QR Code first"
 
 
-    # Check QR validity
 
-    if not check_token(token):
+    if not check_token(
+        token,
+        session.get("qr_expiry")
+    ):
+
         return "❌ Invalid or expired QR Code"
 
 
 
     if request.method == "POST":
 
-        student_id = request.form.get("student_id")
+
+        student_id = request.form.get(
+            "student_id"
+        )
 
 
         students = get_students()
 
 
         found = False
+
 
 
         for student in students:
@@ -78,13 +103,18 @@ def home():
 
 
                 found = True
+
                 break
+
 
 
 
         if not found:
 
-            message = "Student ID not found ❌"
+            message = (
+                "Student ID not found ❌"
+            )
+
 
 
 
@@ -95,8 +125,10 @@ def home():
 
 
 
+
+
 # ==========================
-# CREATE WEEKLY ATTENDANCE
+# CREATE WEEK
 # ==========================
 
 @app.route("/create-week")
@@ -108,8 +140,11 @@ def create_week():
 
 
 
+
+
+
 # ==========================
-# UPDATE GOOGLE SHEET COLORS
+# COLORS
 # ==========================
 
 @app.route("/color")
@@ -121,14 +156,30 @@ def color():
 
 
 
+
+
+
 # ==========================
-# GENERATE QR CODE
+# GENERATE QR
 # ==========================
 
 @app.route("/generate-qr")
 def generate_qr():
 
-    token, path = create_qr()
+
+    token, expiry = create_token()
+
+
+    session["qr_token"] = token
+
+    session["qr_expiry"] = expiry
+
+
+
+    path = create_qr(
+        token
+    )
+
 
 
     return (
@@ -139,9 +190,8 @@ def generate_qr():
 
 
 
-# ==========================
-# SERVER START
-# ==========================
+
+
 
 if __name__ == "__main__":
 

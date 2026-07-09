@@ -1,51 +1,41 @@
 import qrcode
 import os
 
-from modules.security import generate_token
 
 
-
-def create_qr():
-
-
-    token = generate_token()
+def create_qr(token):
 
 
+    # PUT YOUR RENDER LINK HERE
+    website = (
+        "https://attendancesystem-li6i.onrender.com"
+    )
 
 
     url = (
-        "http://192.168.1.130:5000/"
+        website +
         f"?token={token}"
     )
-
 
 
     qr = qrcode.make(url)
 
 
-
-    folder = os.path.join(
-        "static",
-        "qr"
-    )
+    folder = "static/qr"
 
 
-
-    if not os.path.exists(folder):
-
-        os.makedirs(folder)
-
-
-
-    path = os.path.join(
+    os.makedirs(
         folder,
-        "attendance_qr.png"
+        exist_ok=True
     )
 
+
+    path = (
+        "static/qr/attendance_qr.png"
+    )
 
 
     qr.save(path)
 
 
-
-    return token, path
+    return path

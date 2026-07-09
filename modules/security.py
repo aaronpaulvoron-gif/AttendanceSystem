@@ -1,57 +1,35 @@
-import time
-import random
-import string
-
-
-current_token = None
-created_time = None
+import secrets
+from datetime import datetime, timedelta
 
 
 
-def generate_token():
+def create_token():
 
-    global current_token
-    global created_time
+    token = secrets.token_urlsafe(8)
 
-
-    current_token = ''.join(
-        random.choices(
-            string.ascii_uppercase + string.digits,
-            k=10
-        )
-    )
+    expiry = (
+        datetime.now() + timedelta(minutes=5)
+    ).timestamp()
 
 
-    created_time = time.time()
-
-
-    return current_token
+    return token, expiry
 
 
 
 
+def check_token(token, expiry):
 
-def check_token(token):
-
-    global current_token
-    global created_time
-
-
-    if token != current_token:
-
+    if not token:
         return False
 
 
-
-    # 7 days expiration
-
-    expire_time = 7 * 24 * 60 * 60
-
-
-    if time.time() - created_time > expire_time:
-
+    if not expiry:
         return False
 
+
+    if datetime.now().timestamp() > float(expiry):
+
+        return False
 
 
     return True
