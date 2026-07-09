@@ -2,7 +2,9 @@ import qrcode
 import os
 
 
+
 def create_qr(token):
+
 
     website = (
         "https://attendancesystem-li6i.onrender.com/"
@@ -10,8 +12,10 @@ def create_qr(token):
 
 
     url = (
-        website +
-        "?token=" +
+        website
+        +
+        "?token="
+        +
         token
     )
 
@@ -25,7 +29,9 @@ def create_qr(token):
     )
 
 
-    path = "static/qr/attendance_qr.png"
+    path = (
+        "static/qr/attendance_qr.png"
+    )
 
 
     qr.save(path)

@@ -20,31 +20,24 @@ from modules.security import (
 app = Flask(__name__)
 
 
-@app.route("/", methods=["GET","POST"])
+@app.route("/", methods=["GET", "POST"])
 def home():
 
-    token = request.args.get(
-        "token"
+    token = (
+        request.args.get("token")
+        or request.form.get("token")
     )
 
 
     if not token:
-
         return "❌ Please scan QR Code first"
-
 
 
     qr_data = get_qr_token()
 
 
-
-    if not check_token(
-        token,
-        qr_data
-    ):
-
+    if not check_token(token, qr_data):
         return "❌ Invalid or expired QR Code"
-
 
 
     message = ""
@@ -62,37 +55,35 @@ def home():
 
         for student in students:
 
-
             if student["Student ID"] == student_id:
 
 
-                if record_attendance(
+                result = record_attendance(
                     student["Student ID"],
                     student["Name"]
-                ):
+                )
 
-                    message = (
-                        "Attendance recorded ✅"
-                    )
+
+                if result:
+                    message = "Attendance Recorded ✅"
 
                 else:
+                    message = "Already Present ⚠️"
 
-                    message = (
-                        "Already recorded ⚠️"
-                    )
 
                 break
 
+
         else:
 
-            message = (
-                "Student ID not found ❌"
-            )
+            message = "Student ID not found ❌"
+
 
 
     return render_template(
         "index.html",
-        message=message
+        message=message,
+        token=token
     )
 
 
@@ -117,9 +108,8 @@ def generate_qr():
     return f"""
     QR Generated ✅
     <br>
-    Token: {token}
-    <br>
-    Saved: {path}
+    File:
+    {path}
     """
 
 
@@ -129,7 +119,7 @@ def create_week():
 
     create_weekly_attendance()
 
-    return "Week created ✅"
+    return "Attendance Created ✅"
 
 
 
@@ -138,7 +128,7 @@ def color():
 
     color_attendance()
 
-    return "Updated ✅"
+    return "Colors Updated ✅"
 
 
 
