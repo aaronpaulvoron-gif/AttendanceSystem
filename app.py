@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request
+from datetime import datetime
 
 from modules.sheets import (
     get_students,
@@ -20,7 +21,8 @@ from modules.security import (
 app = Flask(__name__)
 
 
-@app.route("/", methods=["GET", "POST"])
+
+@app.route("/", methods=["GET","POST"])
 def home():
 
     token = (
@@ -30,20 +32,30 @@ def home():
 
 
     if not token:
+
         return "❌ Please scan QR Code first"
+
 
 
     qr_data = get_qr_token()
 
 
-    if not check_token(token, qr_data):
+
+    if not check_token(
+        token,
+        qr_data
+    ):
+
         return "❌ Invalid or expired QR Code"
+
 
 
     message = ""
 
 
+
     if request.method == "POST":
+
 
         student_id = request.form.get(
             "student_id"
@@ -53,7 +65,9 @@ def home():
         students = get_students()
 
 
+
         for student in students:
+
 
             if student["Student ID"] == student_id:
 
@@ -65,10 +79,16 @@ def home():
 
 
                 if result:
-                    message = "Attendance Recorded ✅"
+
+                    message = (
+                        "Attendance Recorded ✅"
+                    )
 
                 else:
-                    message = "Already Present ⚠️"
+
+                    message = (
+                        "Already Recorded ⚠️"
+                    )
 
 
                 break
@@ -76,7 +96,9 @@ def home():
 
         else:
 
-            message = "Student ID not found ❌"
+            message = (
+                "Student ID not found ❌"
+            )
 
 
 
@@ -88,10 +110,14 @@ def home():
 
 
 
+
+
 @app.route("/generate-qr")
 def generate_qr():
 
+
     token, expiry = create_token()
+
 
 
     save_qr_token(
@@ -100,17 +126,52 @@ def generate_qr():
     )
 
 
+
     path = create_qr(
         token
     )
 
 
+
     return f"""
-    QR Generated ✅
-    <br>
-    File:
-    {path}
+
+    <h1>Attendance QR Generated ✅</h1>
+
+    <img src="/static/qr/attendance_qr.png"
+    width="300">
+
+    <h3>
+    Expires:
+    {expiry}
+    </h3>
+
+    <p>
+    Students scan this QR
+    </p>
+
     """
+
+
+
+
+
+@app.route("/close-attendance")
+def close_attendance():
+
+
+    save_qr_token(
+        "CLOSED",
+        datetime.now()
+    )
+
+
+    return """
+    <h1>
+    Attendance Closed 🔒
+    </h1>
+    """
+
+
 
 
 
@@ -119,7 +180,9 @@ def create_week():
 
     create_weekly_attendance()
 
-    return "Attendance Created ✅"
+    return "Week created ✅"
+
+
 
 
 
@@ -129,6 +192,8 @@ def color():
     color_attendance()
 
     return "Colors Updated ✅"
+
+
 
 
 
