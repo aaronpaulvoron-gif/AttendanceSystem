@@ -6,9 +6,8 @@ import os
 def create_qr(token):
 
 
-    # PUT YOUR RENDER LINK HERE
     website = (
-        "https://attendancesystem-li6i.onrender.com"
+        "https://attendancesystem-li6i.onrender.com/"
     )
 
 
@@ -18,14 +17,13 @@ def create_qr(token):
     )
 
 
-    qr = qrcode.make(url)
-
-
-    folder = "static/qr"
+    qr = qrcode.make(
+        url
+    )
 
 
     os.makedirs(
-        folder,
+        "static/qr",
         exist_ok=True
     )
 

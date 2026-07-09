@@ -1,8 +1,7 @@
 from flask import (
     Flask,
     render_template,
-    request,
-    session
+    request
 )
 
 
@@ -10,7 +9,9 @@ from modules.sheets import (
     get_students,
     record_attendance,
     create_weekly_attendance,
-    color_attendance
+    color_attendance,
+    save_qr_token,
+    get_qr_token
 )
 
 
@@ -27,15 +28,13 @@ from modules.security import (
 app = Flask(__name__)
 
 
-app.secret_key = "attendance-secret-key"
-
 
 
 # ==========================
 # STUDENT PAGE
 # ==========================
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
 def home():
 
     message = ""
@@ -48,16 +47,21 @@ def home():
 
     if not token:
 
-        return "❌ Please scan the QR Code first"
+        return "❌ Please scan QR Code first"
+
+
+
+    qr_data = get_qr_token()
 
 
 
     if not check_token(
         token,
-        session.get("qr_expiry")
+        qr_data
     ):
 
         return "❌ Invalid or expired QR Code"
+
 
 
 
@@ -70,9 +74,6 @@ def home():
 
 
         students = get_students()
-
-
-        found = False
 
 
 
@@ -91,30 +92,24 @@ def home():
                 if success:
 
                     message = (
-                        f"Welcome {student['Name']}! "
-                        "Attendance Recorded ✅"
+                        "Attendance recorded ✅"
                     )
 
                 else:
 
                     message = (
-                        "Attendance already recorded ⚠️"
+                        "Already recorded ⚠️"
                     )
 
-
-                found = True
 
                 break
 
 
-
-
-        if not found:
+        else:
 
             message = (
-                "Student ID not found ❌"
+                "Student not found ❌"
             )
-
 
 
 
@@ -136,7 +131,7 @@ def create_week():
 
     create_weekly_attendance()
 
-    return "Weekly attendance created ✅"
+    return "Week created ✅"
 
 
 
@@ -144,7 +139,7 @@ def create_week():
 
 
 # ==========================
-# COLORS
+# COLOR
 # ==========================
 
 @app.route("/color")
@@ -170,9 +165,11 @@ def generate_qr():
     token, expiry = create_token()
 
 
-    session["qr_token"] = token
 
-    session["qr_expiry"] = expiry
+    save_qr_token(
+        token,
+        expiry
+    )
 
 
 
@@ -181,11 +178,10 @@ def generate_qr():
     )
 
 
-
     return (
         "QR Generated ✅<br>"
         f"Token: {token}<br>"
-        f"File: {path}"
+        f"Saved: {path}"
     )
 
 

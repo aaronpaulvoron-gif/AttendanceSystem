@@ -9,25 +9,29 @@ def create_token():
 
     expiry = (
         datetime.now() + timedelta(minutes=5)
-    ).timestamp()
-
+    )
 
     return token, expiry
 
 
 
+def check_token(token, qr_data):
 
-def check_token(token, expiry):
-
-    if not token:
+    if not qr_data:
         return False
 
 
-    if not expiry:
+    if token != qr_data["Token"]:
         return False
 
 
-    if datetime.now().timestamp() > float(expiry):
+
+    expiry_time = datetime.fromisoformat(
+        qr_data["Expiry"]
+    )
+
+
+    if datetime.now() > expiry_time:
 
         return False
 
