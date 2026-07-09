@@ -1,8 +1,3 @@
-# ==========================
-# QR TOKEN STORAGE
-# ==========================
-
-
 def save_qr_token(token, expiry):
 
     client = connect_google_sheet()
@@ -10,7 +5,6 @@ def save_qr_token(token, expiry):
     sheet = client.open(
         "Attendance Monitoring System"
     )
-
 
     qr_sheet = sheet.worksheet(
         "QR"
@@ -37,7 +31,6 @@ def save_qr_token(token, expiry):
 
 
 
-
 def get_qr_token():
 
     client = connect_google_sheet()
@@ -52,13 +45,11 @@ def get_qr_token():
     )
 
 
-    records = qr_sheet.get_all_records()
+    data = qr_sheet.get_all_records()
 
 
-    if len(records) == 0:
-
+    if len(data) == 0:
         return None
 
 
-
-    return records[0]
+    return data[0]

@@ -2,14 +2,11 @@ import secrets
 from datetime import datetime, timedelta
 
 
-
 def create_token():
 
     token = secrets.token_urlsafe(8)
 
-    expiry = (
-        datetime.now() + timedelta(minutes=5)
-    )
+    expiry = datetime.now() + timedelta(minutes=5)
 
     return token, expiry
 
@@ -17,23 +14,17 @@ def create_token():
 
 def check_token(token, qr_data):
 
-    if not qr_data:
+    if qr_data is None:
         return False
-
 
     if token != qr_data["Token"]:
         return False
 
-
-
-    expiry_time = datetime.fromisoformat(
+    expiry = datetime.fromisoformat(
         qr_data["Expiry"]
     )
 
-
-    if datetime.now() > expiry_time:
-
+    if datetime.now() > expiry:
         return False
-
 
     return True
