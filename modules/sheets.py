@@ -1,4 +1,7 @@
 import gspread
+import os
+import json
+
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
@@ -18,13 +21,33 @@ def connect_google_sheet():
     ]
 
 
-    creds = Credentials.from_service_account_file(
-        "credentials.json",
-        scopes=scopes
+    # Render uses Environment Variables
+    google_credentials = os.environ.get(
+        "GOOGLE_CREDENTIALS"
     )
 
 
-    client = gspread.authorize(creds)
+    if google_credentials:
+
+        creds = Credentials.from_service_account_info(
+            json.loads(google_credentials),
+            scopes=scopes
+        )
+
+
+    else:
+
+        # Local computer fallback
+        creds = Credentials.from_service_account_file(
+            "credentials.json",
+            scopes=scopes
+        )
+
+
+    client = gspread.authorize(
+        creds
+    )
+
 
     return client
 
