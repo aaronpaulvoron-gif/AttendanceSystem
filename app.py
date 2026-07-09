@@ -1,9 +1,4 @@
-from flask import (
-    Flask,
-    render_template,
-    request
-)
-
+from flask import Flask, render_template, request
 
 from modules.sheets import (
     get_students,
@@ -14,112 +9,45 @@ from modules.sheets import (
     get_qr_token
 )
 
-
 from modules.qr_generator import create_qr
 
-
-from modules.security import (
-    create_token,
-    check_token
-)
-
+from modules.security import create_token
 
 
 app = Flask(__name__)
-
-
 
 
 # ==========================
 # STUDENT PAGE
 # ==========================
 
-@app.route("/", methods=["GET","POST"])
+@app.route("/", methods=["GET", "POST"])
 def home():
 
-    message = ""
-
-
-    token = request.args.get(
-        "token"
-    )
+    token = request.args.get("token")
 
 
     if not token:
-
         return "❌ Please scan QR Code first"
-
 
 
     qr_data = get_qr_token()
 
 
+    # DEBUG MODE
+    return f"""
+    <h2>DEBUG QR</h2>
 
-    if not check_token(
-        token,
-        qr_data
-    ):
+    <b>Token from phone:</b>
+    <br>
+    {token}
 
-        return "❌ Invalid or expired QR Code"
+    <br><br>
 
-
-
-
-    if request.method == "POST":
-
-
-        student_id = request.form.get(
-            "student_id"
-        )
-
-
-        students = get_students()
-
-
-
-        for student in students:
-
-
-            if student["Student ID"] == student_id:
-
-
-                success = record_attendance(
-                    student["Student ID"],
-                    student["Name"]
-                )
-
-
-                if success:
-
-                    message = (
-                        "Attendance recorded ✅"
-                    )
-
-                else:
-
-                    message = (
-                        "Already recorded ⚠️"
-                    )
-
-
-                break
-
-
-        else:
-
-            message = (
-                "Student not found ❌"
-            )
-
-
-
-    return render_template(
-        "index.html",
-        message=message
-    )
-
-
-
+    <b>Data from Google Sheet:</b>
+    <br>
+    {qr_data}
+    """
 
 
 # ==========================
@@ -132,9 +60,6 @@ def create_week():
     create_weekly_attendance()
 
     return "Week created ✅"
-
-
-
 
 
 
@@ -151,9 +76,6 @@ def color():
 
 
 
-
-
-
 # ==========================
 # GENERATE QR
 # ==========================
@@ -165,12 +87,10 @@ def generate_qr():
     token, expiry = create_token()
 
 
-
     save_qr_token(
         token,
         expiry
     )
-
 
 
     path = create_qr(
@@ -178,14 +98,25 @@ def generate_qr():
     )
 
 
-    return (
-        "QR Generated ✅<br>"
-        f"Token: {token}<br>"
-        f"Saved: {path}"
-    )
+    return f"""
+    <h2>QR Generated ✅</h2>
 
+    Token:
+    <br>
+    {token}
 
+    <br><br>
 
+    Expiry:
+    <br>
+    {expiry}
+
+    <br><br>
+
+    Saved:
+    <br>
+    {path}
+    """
 
 
 
