@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Current Attendance QR
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>
+            Current Attendance QR
+        </h1>
+
+        <p class="description">
+            This is the currently active QR code.
+        </p>
+
+        <img
+            src="{{ url_for(
+                'static',
+                filename='qr/attendance_qr.png'
+            ) }}?token={{ token }}"
+            width="300"
+            alt="Current Attendance QR"
+        >
+
+        <h3>
+            Closes at:
+            {{ expiry_display }}
+        </h3>
+
+        <div
+            id="qr-countdown"
+            class="attendance-timer"
+            data-expiry="{{ expiry }}"
+        >
+
+            <p>
+                Time remaining
+            </p>
+
+            <strong id="qr-countdown-text">
+                Calculating...
+            </strong>
+
+        </div>
+
+        <a
+            href="{{ url_for('admin') }}"
+            class="dashboard-button secondary-button"
+        >
+            Back to Dashboard
+        </a>
+
+    </div>
+
+    <script>
+
+        const timerBox =
+            document.getElementById(
+                "qr-countdown"
+            );
+
+        const countdownText =
+            document.getElementById(
+                "qr-countdown-text"
+            );
+
+        const expiryTime =
+            new Date(
+                timerBox.dataset.expiry
+            ).getTime();
+
+        function updateQrCountdown() {
+
+            const currentTime =
+                new Date().getTime();
+
+            const remaining =
+                expiryTime - currentTime;
+
+            if (remaining <= 0) {
+
+                countdownText.textContent =
+                    "Attendance Closed";
+
+                return;
+            }
+
+            const hours = Math.floor(
+                remaining
+                / (1000 * 60 * 60)
+            );
+
+            const minutes = Math.floor(
+                (
+                    remaining
+                    % (1000 * 60 * 60)
+                )
+                / (1000 * 60)
+            );
+
+            const seconds = Math.floor(
+                (
+                    remaining
+                    % (1000 * 60)
+                )
+                / 1000
+            );
+
+            countdownText.textContent =
+                String(hours).padStart(2, "0")
+                + ":"
+                + String(minutes).padStart(2, "0")
+                + ":"
+                + String(seconds).padStart(2, "0");
+        }
+
+        updateQrCountdown();
+
+        setInterval(
+            updateQrCountdown,
+            1000
+        );
+
+    </script>
+
+</body>
+
+</html>

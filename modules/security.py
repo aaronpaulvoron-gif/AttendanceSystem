@@ -47,9 +47,18 @@ def check_token(token, qr):
     if token != qr["Token"]:
         return False
 
-    expiry = datetime.fromisoformat(
-        qr["Expiry"]
-    )
+    try:
+
+        expiry = datetime.fromisoformat(
+            qr["Expiry"]
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        return False
 
     if datetime.now() > expiry:
         return False
