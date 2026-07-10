@@ -25,10 +25,6 @@
 
     <main class="dashboard-container">
 
-        <!-- ========================= -->
-        <!-- HEADER -->
-        <!-- ========================= -->
-
         <header class="dashboard-header">
 
             <div>
@@ -57,11 +53,6 @@
         </header>
 
 
-
-        <!-- ========================= -->
-        <!-- MESSAGE -->
-        <!-- ========================= -->
-
         {% if message %}
 
             <div class="dashboard-message">
@@ -72,11 +63,6 @@
 
         {% endif %}
 
-
-
-        <!-- ========================= -->
-        <!-- STATISTICS -->
-        <!-- ========================= -->
 
         <section class="stats-grid">
 
@@ -91,7 +77,6 @@
             </article>
 
 
-
             <article class="stat-card present-card">
 
                 <p>Present</p>
@@ -103,7 +88,6 @@
             </article>
 
 
-
             <article class="stat-card late-card">
 
                 <p>Late</p>
@@ -113,7 +97,6 @@
                 </strong>
 
             </article>
-
 
 
             <article class="stat-card absent-card">
@@ -129,19 +112,12 @@
         </section>
 
 
-
-        <!-- ========================= -->
-        <!-- QR STATUS -->
-        <!-- ========================= -->
-
         <section class="dashboard-panel">
 
             <div>
 
                 <p class="panel-label">
-
                     Current Session
-
                 </p>
 
                 <h2>
@@ -149,9 +125,7 @@
                     QR Status
 
                     <span class="qr-status {{ qr_status|lower }}">
-
                         {{ qr_status }}
-
                     </span>
 
                 </h2>
@@ -161,9 +135,7 @@
                     QR expires:
 
                     <strong>
-
                         {{ expiry_text }}
-
                     </strong>
 
                 </p>
@@ -171,15 +143,38 @@
             </div>
 
 
-
             <div class="dashboard-actions">
 
-                <a
-                    href="{{ url_for('generate_qr') }}"
-                    class="dashboard-button"
+                <form
+                    method="POST"
+                    action="{{ url_for('generate_qr') }}"
+                    class="qr-time-form"
                 >
-                    📱 Generate QR
-                </a>
+
+                    <div class="time-field">
+
+                        <label for="close_time">
+                            Attendance closing time
+                        </label>
+
+                        <input
+                            id="close_time"
+                            name="close_time"
+                            type="time"
+                            required
+                        >
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="dashboard-button"
+                    >
+                        📱 Generate QR
+                    </button>
+
+                </form>
+
 
                 <a
                     href="{{ url_for('students') }}"
@@ -188,12 +183,22 @@
                     👨‍🎓 Students
                 </a>
 
+
+                <a
+                    href="{{ url_for('student_search') }}"
+                    class="dashboard-button warning-button"
+                >
+                    🔍 Search Student
+                </a>
+
+
                 <a
                     href="{{ url_for('color') }}"
                     class="dashboard-button warning-button"
                 >
                     🎨 Update Colors
                 </a>
+
 
                 <a
                     href="{{ url_for('close') }}"
@@ -207,47 +212,33 @@
         </section>
 
 
-
-        <!-- ========================= -->
-        <!-- MANAGEMENT -->
-        <!-- ========================= -->
-
         <section class="management-grid">
 
             <article class="management-card">
 
                 <h2>
-
                     Attendance Sheet
-
                 </h2>
 
                 <p>
-
-                    Reset today's attendance sheet for testing.
-
+                    Reset the attendance sheet for testing.
                 </p>
 
                 <a
                     href="{{ url_for('clear') }}"
                     class="dashboard-button danger-button"
-                    onclick="return confirm('Clear Attendance?');"
+                    onclick="return confirm('Clear attendance?');"
                 >
-
                     Clear Attendance
-
                 </a>
 
             </article>
 
 
-
             <article class="management-card">
 
                 <h2>
-
                     System Status
-
                 </h2>
 
                 <table class="status-table">
@@ -255,15 +246,11 @@
                     <tr>
 
                         <td>
-
                             Google Sheets
-
                         </td>
 
                         <td>
-
                             🟢 Connected
-
                         </td>
 
                     </tr>
@@ -271,15 +258,11 @@
                     <tr>
 
                         <td>
-
                             Render Server
-
                         </td>
 
                         <td>
-
                             🟢 Online
-
                         </td>
 
                     </tr>
@@ -287,15 +270,11 @@
                     <tr>
 
                         <td>
-
                             QR Security
-
                         </td>
 
                         <td>
-
                             🟢 Enabled
-
                         </td>
 
                     </tr>
@@ -303,15 +282,23 @@
                     <tr>
 
                         <td>
-
                             Duplicate Protection
-
                         </td>
 
                         <td>
-
                             🟢 Enabled
+                        </td>
 
+                    </tr>
+
+                    <tr>
+
+                        <td>
+                            One Device per Session
+                        </td>
+
+                        <td>
+                            🟢 Enabled
                         </td>
 
                     </tr>
@@ -323,41 +310,38 @@
         </section>
 
 
-
-        <!-- ========================= -->
-        <!-- FUTURE FEATURES -->
-        <!-- ========================= -->
-
         <section class="management-grid">
 
             <article class="management-card">
 
                 <h2>
-
-                    🚧 Coming Soon
-
+                    Available Features
                 </h2>
 
                 <ul>
 
                     <li>
-                        Student Search
+                        Student registration and deletion
                     </li>
 
                     <li>
-                        Attendance Reports
+                        Student attendance search
                     </li>
 
                     <li>
-                        Attendance Percentage
+                        Attendance history
                     </li>
 
                     <li>
-                        Export Excel
+                        Attendance percentage
                     </li>
 
                     <li>
-                        Export PDF
+                        Present, Late, and Absent tracking
+                    </li>
+
+                    <li>
+                        Editable QR closing time
                     </li>
 
                 </ul>
