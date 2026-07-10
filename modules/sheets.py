@@ -3,7 +3,7 @@ import os
 import json
 
 from google.oauth2.service_account import Credentials
-from datetime import datetime, time
+from datetime import datetime, timedelta
 
 from gspread_formatting import (
     CellFormat,
@@ -297,22 +297,46 @@ def delete_student(student_id):
 
 def get_attendance_status():
 
-    current_time = datetime.now().time()
+    qr_data = get_qr_token()
 
-    # Change these based on your class schedule.
-    # Until 8:00 AM = Present
-    # Until 8:15 AM = Late
-    # After 8:15 AM = Closed
-    present_until = time(8, 0)
-    late_until = time(8, 15)
+    if not qr_data:
 
-    if current_time <= present_until:
-        return "P"
+        return None
 
-    if current_time <= late_until:
+    if str(qr_data.get("Token", "")) == "CLOSED":
+
+        return None
+
+    try:
+
+        expiry = datetime.fromisoformat(
+            str(qr_data.get("Expiry", ""))
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        return None
+
+    current_time = datetime.now()
+
+    if current_time > expiry:
+
+        return None
+
+    # Students are marked Late during
+    # the final 15 minutes.
+    late_start = expiry - timedelta(
+        minutes=15
+    )
+
+    if current_time >= late_start:
+
         return "L"
 
-    return None
+    return "P"
 
 def get_student_report(student_id):
 
