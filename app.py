@@ -33,8 +33,7 @@ from modules.security import (
 app = Flask(__name__)
 
 
-# Used to keep the teacher logged in.
-# Put a stronger SECRET_KEY in Render later.
+
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "attendance-secret-key-change-this"
@@ -113,11 +112,42 @@ def home():
 
             if saved_student_id == student_id:
 
+                # Check whether this browser/device already submitted
+                # attendance for this current QR session.
+                device_student_id = session.get(
+                    "attendance_student_id"
+                )
+
+                device_token = session.get(
+                    "attendance_token"
+                )
+
+                # Same QR session, but trying to submit another Student ID.
+                if (
+                        device_token == token
+                        and device_student_id
+                        and device_student_id != saved_student_id
+                ):
+                    message = (
+                        "❌ This phone or browser has already "
+                        "submitted attendance for another student."
+                    )
+
+                    break
+
                 result = record_attendance(
                     saved_student_id
                 )
 
                 if result:
+
+                    # Remember which student this browser submitted
+                    # during this QR attendance session.
+                    session["attendance_student_id"] = (
+                        saved_student_id
+                    )
+
+                    session["attendance_token"] = token
 
                     message = (
                         f'✅ {student["Name"]} '
