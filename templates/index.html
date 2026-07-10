@@ -1,43 +1,81 @@
 <!DOCTYPE html>
+<html lang="en">
 
-<html>
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Attendance Monitoring System
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
 
 <body>
 
-<h1>
-Attendance
-</h1>
+    <div class="container">
 
+        <div class="icon">
+            ✓
+        </div>
 
-<form method="POST">
+        <h1>
+            Attendance Monitoring System
+        </h1>
 
+        <p class="description">
+            Enter your official Student ID after scanning the active attendance QR code.
+        </p>
 
-<input
-type="hidden"
-name="token"
-value="{{token}}"
->
+        <form method="POST">
 
+            <input
+                type="hidden"
+                name="token"
+                value="{{ token }}"
+            >
 
-<input
-name="student_id"
-placeholder="Student ID"
-required
->
+            <label for="student_id">
+                Student ID
+            </label>
 
+            <input
+                id="student_id"
+                name="student_id"
+                type="text"
+                placeholder="02-2425-008111"
+                autocomplete="off"
+                required
+                autofocus
+            >
 
-<button>
-Submit
-</button>
+            <button type="submit">
+                Submit Attendance
+            </button>
 
+        </form>
 
-</form>
+        {% if message %}
 
+            <div class="message">
+                {{ message }}
+            </div>
 
-<h2>
-{{message}}
-</h2>
+        {% endif %}
 
+        <p class="footer-text">
+            Please submit attendance only once.
+        </p>
+
+    </div>
 
 </body>
 
