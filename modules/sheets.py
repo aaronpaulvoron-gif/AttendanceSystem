@@ -300,40 +300,29 @@ def get_attendance_status():
     qr_data = get_qr_token()
 
     if not qr_data:
-
         return None
 
     if str(qr_data.get("Token", "")) == "CLOSED":
-
         return None
 
     try:
-
         expiry = datetime.fromisoformat(
             str(qr_data.get("Expiry", ""))
         )
 
-    except (
-        ValueError,
-        TypeError
-    ):
-
+    except (ValueError, TypeError):
         return None
 
     current_time = datetime.now()
 
     if current_time > expiry:
-
         return None
 
-    # Students are marked Late during
-    # the final 15 minutes.
     late_start = expiry - timedelta(
         minutes=15
     )
 
     if current_time >= late_start:
-
         return "L"
 
     return "P"
@@ -527,7 +516,6 @@ def record_attendance(student_id):
         "Attendance"
     )
 
-    # Make sure today's attendance column exists.
     create_daily_attendance()
 
     headers = attendance.row_values(1)
@@ -543,12 +531,10 @@ def record_attendance(student_id):
             "reason": "date_not_found"
         }
 
-    # Google Sheets columns start at 1.
     today_column = headers.index(today) + 1
 
     status = get_attendance_status()
 
-    # Attendance time is already closed.
     if status is None:
 
         return {
@@ -577,7 +563,6 @@ def record_attendance(student_id):
                 today_column
             ).value
 
-            # Prevent duplicate attendance.
             if current_status in [
                 "P",
                 "L"

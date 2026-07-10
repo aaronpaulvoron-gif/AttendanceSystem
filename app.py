@@ -62,7 +62,7 @@ def admin_required(route_function):
     return protected_route
 
 
-# Load dashboard information
+# Load dashboard
 def render_admin_dashboard(message=""):
 
     stats = get_attendance_stats()
@@ -254,10 +254,7 @@ def home():
                                 "is marked Late."
                             )
 
-                    elif (
-                        result["reason"]
-                        == "duplicate"
-                    ):
+                    elif result["reason"] == "duplicate":
 
                         previous_status = result.get(
                             "status",
@@ -283,20 +280,14 @@ def home():
                             f"recorded as {status_text}."
                         )
 
-                    elif (
-                        result["reason"]
-                        == "closed"
-                    ):
+                    elif result["reason"] == "closed":
 
                         message = (
                             "❌ The attendance time "
                             "window is already closed."
                         )
 
-                    elif (
-                        result["reason"]
-                        == "date_not_found"
-                    ):
+                    elif result["reason"] == "date_not_found":
 
                         message = (
                             "❌ Today's attendance "
@@ -414,7 +405,10 @@ def admin():
 # Generate QR
 @app.route(
     "/generate-qr",
-    methods=["GET", "POST"]
+    methods=[
+        "GET",
+        "POST"
+    ]
 )
 @admin_required
 def generate_qr():
@@ -429,7 +423,6 @@ def generate_qr():
         "close_time",
         ""
     ).strip()
-
 
     if not close_time_text:
 
@@ -465,167 +458,73 @@ def generate_qr():
         token
     )
 
-    expiry_iso = expiry.isoformat()
+    return redirect(
+        url_for("current_qr")
+    )
 
-    return f"""
-    <!DOCTYPE html>
 
-    <html lang="en">
+# View current QR
+@app.route("/current-qr")
+@admin_required
+def current_qr():
 
-    <head>
+    qr_data = get_qr_token()
 
-        <meta charset="UTF-8">
+    if not qr_data:
 
-        <meta
-            name="viewport"
-            content="width=device-width,
-            initial-scale=1.0"
-        >
+        return render_admin_dashboard(
+            "❌ No QR has been generated."
+        )
 
-        <title>
-            Attendance QR
-        </title>
+    token = str(
+        qr_data.get(
+            "Token",
+            ""
+        )
+    )
 
-        <link
-            rel="stylesheet"
-            href="/static/css/style.css"
-        >
+    expiry_text = str(
+        qr_data.get(
+            "Expiry",
+            ""
+        )
+    )
 
-    </head>
+    if token == "CLOSED":
 
-    <body>
+        return render_admin_dashboard(
+            "❌ Attendance is currently closed."
+        )
 
-        <div class="container">
+    try:
 
-            <h1>
-                Attendance QR
-            </h1>
+        expiry = datetime.fromisoformat(
+            expiry_text
+        )
 
-            <p class="description">
-                Students should scan this QR
-                and enter their official Student ID.
-            </p>
+    except (
+        ValueError,
+        TypeError
+    ):
 
-            <img
-                src="/static/qr/attendance_qr.png?token={token}"
-                width="300"
-                alt="Attendance QR"
-            >
+        return render_admin_dashboard(
+            "❌ The saved QR expiry is invalid."
+        )
 
-            <h3>
-                Closes at:
-                {expiry.strftime("%I:%M %p")}
-            </h3>
+    if datetime.now() > expiry:
 
-            <div
-                id="qr-countdown"
-                class="attendance-timer"
-                data-expiry="{expiry_iso}"
-            >
+        return render_admin_dashboard(
+            "❌ The current QR has already expired."
+        )
 
-                <p>
-                    Time remaining
-                </p>
-
-                <strong id="qr-countdown-text">
-                    Calculating...
-                </strong>
-
-            </div>
-
-            <a
-                href="/admin"
-                class="dashboard-button secondary-button"
-            >
-                Back to Dashboard
-            </a>
-
-        </div>
-
-        <script>
-
-            const timerBox =
-                document.getElementById(
-                    "qr-countdown"
-                );
-
-            const countdownText =
-                document.getElementById(
-                    "qr-countdown-text"
-                );
-
-            const expiryTime =
-                new Date(
-                    timerBox.dataset.expiry
-                ).getTime();
-
-            function updateQrCountdown() {{
-
-                const currentTime =
-                    new Date().getTime();
-
-                const remaining =
-                    expiryTime - currentTime;
-
-                if (remaining <= 0) {{
-
-                    countdownText.textContent =
-                        "Attendance Closed";
-
-                    return;
-                }}
-
-                const hours = Math.floor(
-                    remaining
-                    / (1000 * 60 * 60)
-                );
-
-                const minutes = Math.floor(
-                    (
-                        remaining
-                        % (1000 * 60 * 60)
-                    )
-                    / (1000 * 60)
-                );
-
-                const seconds = Math.floor(
-                    (
-                        remaining
-                        % (1000 * 60)
-                    )
-                    / 1000
-                );
-
-                countdownText.textContent =
-                    String(hours).padStart(
-                        2,
-                        "0"
-                    )
-                    + ":"
-                    + String(minutes).padStart(
-                        2,
-                        "0"
-                    )
-                    + ":"
-                    + String(seconds).padStart(
-                        2,
-                        "0"
-                    );
-            }}
-
-            updateQrCountdown();
-
-            setInterval(
-                updateQrCountdown,
-                1000
-            );
-
-        </script>
-
-    </body>
-
-    </html>
-    """
+    return render_template(
+        "current_qr.html",
+        token=token,
+        expiry=expiry.isoformat(),
+        expiry_display=expiry.strftime(
+            "%I:%M %p"
+        )
+    )
 
 
 # Close attendance
@@ -643,7 +542,7 @@ def close():
     )
 
 
-# Update attendance colors
+# Update colors
 @app.route("/color")
 @admin_required
 def color():
@@ -667,7 +566,7 @@ def clear():
     )
 
 
-# Student management
+# Manage students
 @app.route(
     "/students",
     methods=[
@@ -703,10 +602,7 @@ def students():
                 "✅ Student added successfully."
             )
 
-        elif (
-            result["reason"]
-            == "duplicate"
-        ):
+        elif result["reason"] == "duplicate":
 
             message = (
                 "⚠️ Student ID already exists."
@@ -715,8 +611,7 @@ def students():
         else:
 
             message = (
-                "❌ Student ID and name "
-                "are required."
+                "❌ Student ID and name are required."
             )
 
     student_list = get_students()
