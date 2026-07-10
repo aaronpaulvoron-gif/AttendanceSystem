@@ -414,15 +414,22 @@ def admin():
 # Generate QR
 @app.route(
     "/generate-qr",
-    methods=["POST"]
+    methods=["GET", "POST"]
 )
 @admin_required
 def generate_qr():
+
+    if request.method == "GET":
+
+        return redirect(
+            url_for("admin")
+        )
 
     close_time_text = request.form.get(
         "close_time",
         ""
     ).strip()
+
 
     if not close_time_text:
 
