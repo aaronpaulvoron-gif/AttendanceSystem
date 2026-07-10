@@ -3,7 +3,7 @@ import os
 import json
 
 from google.oauth2.service_account import Credentials
-from datetime import datetime
+from datetime import datetime, time
 
 from gspread_formatting import (
     CellFormat,
@@ -83,56 +83,111 @@ def create_daily_attendance():
         "Attendance Monitoring System"
     )
 
-
     students_sheet = sheet.worksheet(
         "Students"
     )
-
 
     attendance = sheet.worksheet(
         "Attendance"
     )
 
-
     today = datetime.now().strftime(
         "%Y-%m-%d"
     )
 
-
+    # Make sure the Attendance sheet has headers.
     headers = attendance.row_values(1)
 
+    if len(headers) < 2:
 
+        attendance.clear()
 
-    if today in headers:
-        return
+        attendance.append_row([
+            "Student ID",
+            "Name"
+        ])
 
-
-
-    # add today's date column
-
-    new_column = len(headers) + 1
-
-
-    attendance.update_cell(
-        1,
-        new_column,
-        today
-    )
-
-
+        headers = [
+            "Student ID",
+            "Name"
+        ]
 
     students = students_sheet.get_all_records()
 
+    attendance_values = attendance.get_all_values()
 
+    existing_ids = set()
 
+    # Get IDs already inside the Attendance sheet.
+    for row in attendance_values[1:]:
+
+        if len(row) >= 1:
+
+            existing_id = str(
+                row[0]
+            ).strip()
+
+            if existing_id:
+
+                existing_ids.add(
+                    existing_id
+                )
+
+    # Add missing students only once.
     for student in students:
 
-        attendance.append_row(
-            [
-                student["Student ID"],
-                student["Name"],
-                "A"
-            ]
+        student_id = str(
+            student["Student ID"]
+        ).strip()
+
+        student_name = str(
+            student["Name"]
+        ).strip()
+
+        if student_id not in existing_ids:
+
+            attendance.append_row([
+                student_id,
+                student_name
+            ])
+
+            existing_ids.add(
+                student_id
+            )
+
+    # Refresh headers after syncing students.
+    headers = attendance.row_values(1)
+
+    # If today's date already exists, do nothing.
+    if today in headers:
+
+        return
+
+    # Add today's date as a new column.
+    today_column = len(headers) + 1
+
+    attendance.update_cell(
+        1,
+        today_column,
+        today
+    )
+
+    # Mark every student Absent by default.
+    attendance_values = attendance.get_all_values()
+
+    total_rows = len(
+        attendance_values
+    )
+
+    for row_number in range(
+        2,
+        total_rows + 1
+    ):
+
+        attendance.update_cell(
+            row_number,
+            today_column,
+            "A"
         )
 
 
@@ -142,9 +197,23 @@ def create_daily_attendance():
 # =========================
 # RECORD PRESENT
 # =========================
+def get_attendance_status():
+
+    current_time = datetime.now().time()
+
+    # Change these times based on your class schedule.
+    present_until = time(8, 0)
+    late_until = time(8, 15)
+
+    if current_time <= present_until:
+        return "P"
+
+    if current_time <= late_until:
+        return "L"
+
+    return None
 
 def record_attendance(student_id):
-
 
     client = connect_google_sheet()
 
@@ -152,59 +221,71 @@ def record_attendance(student_id):
         "Attendance Monitoring System"
     )
 
-
     attendance = sheet.worksheet(
         "Attendance"
     )
 
-
     headers = attendance.row_values(1)
 
+    today = datetime.now().strftime(
+        "%Y-%m-%d"
+    )
 
-    today_column = len(headers)
+    if today not in headers:
+        create_daily_attendance()
+        headers = attendance.row_values(1)
 
+    today_column = headers.index(today) + 1
 
+    status = get_attendance_status()
+
+    if status is None:
+        return {
+            "success": False,
+            "reason": "closed"
+        }
 
     records = attendance.get_all_records()
-
-
 
     for row_number, row in enumerate(
         records,
         start=2
     ):
 
+        saved_id = str(
+            row["Student ID"]
+        ).strip()
 
-        if row["Student ID"] == student_id:
-
-
+        if saved_id == str(student_id).strip():
 
             current = attendance.cell(
                 row_number,
                 today_column
             ).value
 
+            if current in ["P", "L"]:
 
-
-            if current == "P":
-
-                return False
-
-
+                return {
+                    "success": False,
+                    "reason": "duplicate",
+                    "status": current
+                }
 
             attendance.update_cell(
                 row_number,
                 today_column,
-                "P"
+                status
             )
 
+            return {
+                "success": True,
+                "status": status
+            }
 
-            return True
-
-
-
-    return False
-
+    return {
+        "success": False,
+        "reason": "not_found"
+    }
 
 
 
@@ -322,7 +403,19 @@ def color_attendance():
                         )
                     )
                 )
+            elif cell.value == "L":
 
+                format_cell_range(
+                    attendance,
+                    cell.address,
+                    CellFormat(
+                        backgroundColor=Color(
+                            1,
+                            0.85,
+                            0.3
+                        )
+                    )
+                )
 
 
             elif cell.value == "A":
