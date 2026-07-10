@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -10,15 +9,12 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>
-        Current Attendance QR
-    </title>
+    <title>Current Attendance QR</title>
 
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
-
 </head>
 
 <body>
@@ -30,16 +26,18 @@
         </h1>
 
         <p class="description">
-            This is the currently active QR code.
+            Students should scan this QR and enter their Student ID.
         </p>
 
         <img
             src="{{ url_for(
                 'static',
                 filename='qr/attendance_qr.png'
-            ) }}?token={{ token }}"
+            ) }}?v={{ token }}"
             width="300"
+            height="300"
             alt="Current Attendance QR"
+            class="qr-image"
         >
 
         <h3>
@@ -106,8 +104,7 @@
             }
 
             const hours = Math.floor(
-                remaining
-                / (1000 * 60 * 60)
+                remaining / (1000 * 60 * 60)
             );
 
             const minutes = Math.floor(
