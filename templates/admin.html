@@ -1,10 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Teacher Dashboard</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
 </head>
+
 <body>
 
+    <div class="admin-container">
+
+        <div class="admin-header">
+
+            <div>
+                <h1>Teacher Dashboard</h1>
+
+                <p class="description">
+                    Manage today's attendance session.
+                </p>
+            </div>
+
+            <a
+                href="{{ url_for('logout') }}"
+                class="admin-button gray-button"
+            >
+                Log Out
+            </a>
+
+        </div>
+
+        {% if message %}
+
+            <div class="message">
+                {{ message }}
+            </div>
+
+        {% endif %}
+
+        <div class="admin-grid">
+
+            <div class="admin-card">
+
+                <h2>Generate Attendance</h2>
+
+                <p>
+                    Create today's attendance column and generate a new QR code.
+                </p>
+
+                <a
+                    href="{{ url_for('generate_qr') }}"
+                    class="admin-button"
+                >
+                    Generate QR
+                </a>
+
+            </div>
+
+            <div class="admin-card">
+
+                <h2>Close Attendance</h2>
+
+                <p>
+                    Disable the current QR code so students cannot submit anymore.
+                </p>
+
+                <a
+                    href="{{ url_for('close') }}"
+                    class="admin-button red-button"
+                >
+                    Close Attendance
+                </a>
+
+            </div>
+
+            <div class="admin-card">
+
+                <h2>Update Colors</h2>
+
+                <p>
+                    Color Present cells green and Absent cells red.
+                </p>
+
+                <a
+                    href="{{ url_for('color') }}"
+                    class="admin-button yellow-button"
+                >
+                    Update Colors
+                </a>
+
+            </div>
+
+            <div class="admin-card">
+
+                <h2>Clear Test Data</h2>
+
+                <p>
+                    Reset the Attendance worksheet. Use this carefully.
+                </p>
+
+                <a
+                    href="{{ url_for('clear') }}"
+                    class="admin-button red-button"
+                    onclick="return confirm('Are you sure you want to clear attendance?');"
+                >
+                    Clear Attendance
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </body>
+
 </html>

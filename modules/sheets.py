@@ -102,7 +102,7 @@ def create_daily_attendance():
     headers = attendance.row_values(1)
 
 
-    # already created today
+
     if today in headers:
         return
 
