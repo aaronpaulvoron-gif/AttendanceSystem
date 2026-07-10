@@ -65,52 +65,94 @@ def admin_required(route_function):
 # Load dashboard
 def render_admin_dashboard(message=""):
 
-    stats = get_attendance_stats()
-
-    qr_data = get_qr_token()
+    stats = {
+        "total": 0,
+        "present": 0,
+        "late": 0,
+        "absent": 0
+    }
 
     qr_status = "CLOSED"
     expiry_text = "No active QR"
 
-    if qr_data:
+    try:
 
-        saved_token = str(
-            qr_data.get(
-                "Token",
-                ""
-            )
+        stats = get_attendance_stats()
+
+    except Exception as error:
+
+        print(
+            "Dashboard statistics error:",
+            error
         )
 
-        saved_expiry = str(
-            qr_data.get(
-                "Expiry",
-                ""
+        if not message:
+
+            message = (
+                "⚠️ Could not load attendance statistics."
             )
-        )
 
-        if saved_token != "CLOSED":
+    try:
 
-            try:
+        qr_data = get_qr_token()
 
-                expiry = datetime.fromisoformat(
-                    saved_expiry
+        if qr_data:
+
+            saved_token = str(
+                qr_data.get(
+                    "Token",
+                    ""
                 )
+            )
 
-                if datetime.now() <= expiry:
+            saved_expiry = str(
+                qr_data.get(
+                    "Expiry",
+                    ""
+                )
+            )
 
-                    qr_status = "OPEN"
+            if saved_token != "CLOSED":
 
-                    expiry_text = expiry.strftime(
-                        "%I:%M %p"
+                try:
+
+                    expiry = datetime.fromisoformat(
+                        saved_expiry
                     )
 
-            except (
-                ValueError,
-                TypeError
-            ):
+                    if datetime.now() <= expiry:
 
-                qr_status = "CLOSED"
-                expiry_text = "Invalid expiry"
+                        qr_status = "OPEN"
+
+                        expiry_text = expiry.strftime(
+                            "%I:%M %p"
+                        )
+
+                    else:
+
+                        qr_status = "CLOSED"
+                        expiry_text = "Expired"
+
+                except (
+                    ValueError,
+                    TypeError
+                ):
+
+                    qr_status = "CLOSED"
+                    expiry_text = "Invalid expiry"
+
+    except Exception as error:
+
+        print(
+            "Dashboard QR error:",
+            error
+        )
+
+        if not message:
+
+            message = (
+                "⚠️ Could not load QR status."
+            )
 
     return render_template(
         "admin.html",
