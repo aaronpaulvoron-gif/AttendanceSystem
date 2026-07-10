@@ -1,5 +1,7 @@
 import os
+from io import BytesIO
 
+import qrcode
 from datetime import datetime
 from functools import wraps
 
@@ -8,6 +10,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for
 )
@@ -566,6 +569,81 @@ def current_qr():
         expiry_display=expiry.strftime(
             "%I:%M %p"
         )
+    )
+
+
+# Display the active QR image
+@app.route("/current-qr-image")
+@admin_required
+def current_qr_image():
+
+    qr_data = get_qr_token()
+
+    if not qr_data:
+
+        return "No active QR", 404
+
+    token = str(
+        qr_data.get(
+            "Token",
+            ""
+        )
+    )
+
+    expiry_text = str(
+        qr_data.get(
+            "Expiry",
+            ""
+        )
+    )
+
+    if token == "CLOSED":
+
+        return "Attendance is closed", 404
+
+    try:
+
+        expiry = datetime.fromisoformat(
+            expiry_text
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        return "Invalid QR expiry", 400
+
+    if datetime.now() > expiry:
+
+        return "QR expired", 410
+
+    base_url = os.environ.get(
+        "BASE_URL",
+        request.url_root.rstrip("/")
+    ).rstrip("/")
+
+    attendance_url = (
+        f"{base_url}/?token={token}"
+    )
+
+    qr_image = qrcode.make(
+        attendance_url
+    )
+
+    image_buffer = BytesIO()
+
+    qr_image.save(
+        image_buffer,
+        format="PNG"
+    )
+
+    image_buffer.seek(0)
+
+    return send_file(
+        image_buffer,
+        mimetype="image/png",
+        download_name="attendance_qr.png"
     )
 
 
