@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -10,15 +9,12 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>
-        Teacher Dashboard
-    </title>
+    <title>Teacher Dashboard</title>
 
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
-
 </head>
 
 <body class="dashboard-body">
@@ -28,7 +24,6 @@
         <header class="dashboard-header">
 
             <div>
-
                 <p class="dashboard-label">
                     Attendance Monitoring System
                 </p>
@@ -38,9 +33,8 @@
                 </h1>
 
                 <p class="dashboard-description">
-                    Welcome! Manage today's attendance session.
+                    Manage students and today's attendance session.
                 </p>
-
             </div>
 
             <a
@@ -56,9 +50,7 @@
         {% if message %}
 
             <div class="dashboard-message">
-
                 {{ message }}
-
             </div>
 
         {% endif %}
@@ -67,83 +59,68 @@
         <section class="stats-grid">
 
             <article class="stat-card total-card">
-
                 <p>Total Students</p>
-
-                <strong>
-                    {{ stats.total }}
-                </strong>
-
+                <strong>{{ stats.total }}</strong>
             </article>
-
 
             <article class="stat-card present-card">
-
                 <p>Present</p>
-
-                <strong>
-                    {{ stats.present }}
-                </strong>
-
+                <strong>{{ stats.present }}</strong>
             </article>
-
 
             <article class="stat-card late-card">
-
                 <p>Late</p>
-
-                <strong>
-                    {{ stats.late }}
-                </strong>
-
+                <strong>{{ stats.late }}</strong>
             </article>
 
-
             <article class="stat-card absent-card">
-
                 <p>Absent</p>
-
-                <strong>
-                    {{ stats.absent }}
-                </strong>
-
+                <strong>{{ stats.absent }}</strong>
             </article>
 
         </section>
 
 
-        <section class="dashboard-panel">
+        <section class="session-card">
 
-            <div>
+            <div class="session-info">
 
                 <p class="panel-label">
                     Current Session
                 </p>
 
-                <h2>
+                <div class="session-title-row">
 
-                    QR Status
+                    <h2>
+                        QR Attendance
+                    </h2>
 
                     <span class="qr-status {{ qr_status|lower }}">
                         {{ qr_status }}
                     </span>
 
-                </h2>
+                </div>
 
                 <p class="dashboard-description">
-
-                    QR expires:
-
-                    <strong>
-                        {{ expiry_text }}
-                    </strong>
-
+                    Closing time:
+                    <strong>{{ expiry_text }}</strong>
                 </p>
+
+                {% if qr_status == "OPEN" %}
+
+                    <a
+                        href="{{ url_for('current_qr') }}"
+                        class="dashboard-button current-qr-button"
+                    >
+                        View Current QR
+                    </a>
+
+                {% endif %}
 
             </div>
 
 
-            <div class="dashboard-actions">
+            <div class="session-controls">
 
                 <form
                     method="POST"
@@ -170,41 +147,17 @@
                         type="submit"
                         class="dashboard-button"
                     >
-                         Generate QR
+                        Generate New QR
                     </button>
 
                 </form>
 
-
-                <a
-                    href="{{ url_for('students') }}"
-                    class="dashboard-button secondary-button"
-                >
-                    👨‍🎓 Students
-                </a>
-
-
-                <a
-                    href="{{ url_for('student_search') }}"
-                    class="dashboard-button warning-button"
-                >
-                    🔍 Search Student
-                </a>
-
-
-                <a
-                    href="{{ url_for('color') }}"
-                    class="dashboard-button warning-button"
-                >
-                    🎨 Update Colors
-                </a>
-
-
                 <a
                     href="{{ url_for('close') }}"
                     class="dashboard-button danger-button"
+                    onclick="return confirm('Close the current attendance session?');"
                 >
-                    🔒 Close Attendance
+                    Close Attendance
                 </a>
 
             </div>
@@ -216,20 +169,23 @@
 
             <article class="management-card">
 
+                <div class="management-icon">
+                    👨‍🎓
+                </div>
+
                 <h2>
-                    Attendance Sheet
+                    Students
                 </h2>
 
                 <p>
-                    Reset the attendance sheet for testing.
+                    Add, view, and remove registered students.
                 </p>
 
                 <a
-                    href="{{ url_for('clear') }}"
-                    class="dashboard-button danger-button"
-                    onclick="return confirm('Clear attendance?');"
+                    href="{{ url_for('students') }}"
+                    class="dashboard-button secondary-button"
                 >
-                    Clear Attendance
+                    Manage Students
                 </a>
 
             </article>
@@ -237,116 +193,113 @@
 
             <article class="management-card">
 
+                <div class="management-icon">
+                    🔍
+                </div>
+
                 <h2>
-                    System Status
+                    Search Student
                 </h2>
 
-                <table class="status-table">
+                <p>
+                    View attendance history and percentage.
+                </p>
 
-                    <tr>
+                <a
+                    href="{{ url_for('student_search') }}"
+                    class="dashboard-button warning-button"
+                >
+                    Search Student
+                </a>
 
-                        <td>
-                            Google Sheets
-                        </td>
+            </article>
 
-                        <td>
-                            🟢 Connected
-                        </td>
 
-                    </tr>
+            <article class="management-card">
 
-                    <tr>
+                <div class="management-icon">
+                    🎨
+                </div>
 
-                        <td>
-                            Render Server
-                        </td>
+                <h2>
+                    Attendance Colors
+                </h2>
 
-                        <td>
-                            🟢 Online
-                        </td>
+                <p>
+                    Apply green, yellow, and red status colors.
+                </p>
 
-                    </tr>
+                <a
+                    href="{{ url_for('color') }}"
+                    class="dashboard-button warning-button"
+                >
+                    Update Colors
+                </a>
 
-                    <tr>
+            </article>
 
-                        <td>
-                            QR Security
-                        </td>
 
-                        <td>
-                            🟢 Enabled
-                        </td>
+            <article class="management-card">
 
-                    </tr>
+                <div class="management-icon">
+                    🗑️
+                </div>
 
-                    <tr>
+                <h2>
+                    Reset Attendance
+                </h2>
 
-                        <td>
-                            Duplicate Protection
-                        </td>
+                <p>
+                    Clear attendance data while keeping students.
+                </p>
 
-                        <td>
-                            🟢 Enabled
-                        </td>
-
-                    </tr>
-
-                    <tr>
-
-                        <td>
-                            One Device per Session
-                        </td>
-
-                        <td>
-                            🟢 Enabled
-                        </td>
-
-                    </tr>
-
-                </table>
+                <a
+                    href="{{ url_for('clear') }}"
+                    class="dashboard-button danger-button"
+                    onclick="return confirm('Clear all attendance data?');"
+                >
+                    Clear Attendance
+                </a>
 
             </article>
 
         </section>
 
 
-        <section class="management-grid">
+        <section class="system-card">
 
-            <article class="management-card">
+            <h2>
+                System Status
+            </h2>
 
-                <h2>
-                    Available Features
-                </h2>
+            <div class="system-status-grid">
 
-                <ul>
+                <div class="system-status-item">
+                    <span>Google Sheets</span>
+                    <strong>Connected</strong>
+                </div>
 
-                    <li>
-                        Student registration and deletion
-                    </li>
+                <div class="system-status-item">
+                    <span>Render Server</span>
+                    <strong>Online</strong>
+                </div>
 
-                    <li>
-                        Student attendance search
-                    </li>
+                <div class="system-status-item">
+                    <span>QR Security</span>
+                    <strong>Enabled</strong>
+                </div>
 
-                    <li>
-                        Attendance history
-                    </li>
+                <div class="system-status-item">
+                    <span>Duplicate Protection</span>
+                    <strong>Enabled</strong>
+                </div>
 
-                    <li>
-                        Attendance percentage
-                    </li>
+                <div class="system-status-item">
+                    <span>Device Protection</span>
+                    <strong>Enabled</strong>
+                </div>
 
-                    <li>
-                        Present, Late, and Absent tracking
-                    </li>
-
-                    <li>
-                        Editable QR closing time
-                    </li>
-
-                </ul>
-
-            </article>
+            </div>
 
         </section>
 

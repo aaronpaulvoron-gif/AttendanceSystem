@@ -766,3 +766,176 @@ button:disabled {
 
     cursor: not-allowed;
 }
+.session-card {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 30px;
+
+    margin-bottom: 24px;
+
+    padding: 30px;
+
+    background: white;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 12px 35px
+        rgba(0, 0, 0, 0.08);
+}
+
+.session-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.session-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.session-title-row h2 {
+    margin: 8px 0;
+}
+
+.session-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+}
+
+.current-qr-button {
+    margin-top: 18px;
+    background: #2563eb;
+}
+
+.current-qr-button:hover {
+    background: #1d4ed8;
+}
+
+.qr-time-form {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 14px;
+
+    margin: 0;
+}
+
+.time-field {
+    flex: 1;
+    min-width: 210px;
+}
+
+.time-field label {
+    display: block;
+    margin-bottom: 8px;
+
+    color: #475569;
+
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.time-field input {
+    width: 100%;
+
+    padding: 12px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+
+    background: white;
+
+    font-size: 16px;
+}
+
+.management-icon {
+    margin-bottom: 12px;
+
+    font-size: 32px;
+}
+
+.system-card {
+    margin-top: 24px;
+
+    padding: 28px;
+
+    background: white;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 12px 35px
+        rgba(0, 0, 0, 0.08);
+}
+
+.system-card h2 {
+    margin-top: 0;
+}
+
+.system-status-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+.system-status-item {
+    padding: 16px;
+
+    background: #f8fafc;
+
+    border-radius: 12px;
+}
+
+.system-status-item span {
+    display: block;
+
+    color: #64748b;
+
+    font-size: 13px;
+}
+
+.system-status-item strong {
+    display: block;
+
+    margin-top: 6px;
+
+    color: #166534;
+}
+
+@media (max-width: 900px) {
+
+    .session-card {
+        grid-template-columns: 1fr;
+    }
+
+    .system-status-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 520px) {
+
+    .qr-time-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .qr-time-form .dashboard-button {
+        width: 100%;
+    }
+
+    .system-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
