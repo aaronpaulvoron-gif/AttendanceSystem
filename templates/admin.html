@@ -51,7 +51,29 @@
         <div class="admin-grid">
 
             <div class="admin-card">
+<div class="stats-grid">
 
+    <div class="stat-card">
+        <span>Total Students</span>
+        <strong>{{ stats.total }}</strong>
+    </div>
+
+    <div class="stat-card present-card">
+        <span>Present</span>
+        <strong>{{ stats.present }}</strong>
+    </div>
+
+    <div class="stat-card late-card">
+        <span>Late</span>
+        <strong>{{ stats.late }}</strong>
+    </div>
+
+    <div class="stat-card absent-card">
+        <span>Absent</span>
+        <strong>{{ stats.absent }}</strong>
+    </div>
+
+</div>
                 <h2>Generate Attendance</h2>
 
                 <p>

@@ -19,9 +19,9 @@ from modules.sheets import (
     color_attendance,
     save_qr_token,
     get_qr_token,
-    clear_attendance
+    clear_attendance,
+    get_attendance_stats
 )
-
 from modules.qr_generator import create_qr
 
 from modules.security import (
@@ -139,27 +139,45 @@ def home():
                     saved_student_id
                 )
 
-                if result:
+                if result["success"]:
 
-                    # Remember which student this browser submitted
-                    # during this QR attendance session.
                     session["attendance_student_id"] = (
                         saved_student_id
                     )
 
                     session["attendance_token"] = token
 
-                    message = (
-                        f'✅ {student["Name"]} '
-                        "is marked Present"
-                    )
+                    if result["status"] == "P":
 
-                else:
+                        message = (
+                            f'✅ {student["Name"]} '
+                            "is marked Present"
+                        )
+
+                    elif result["status"] == "L":
+
+                        message = (
+                            f'⚠️ {student["Name"]} '
+                            "is marked Late"
+                        )
+
+                elif result["reason"] == "duplicate":
 
                     message = (
                         "⚠️ Attendance already recorded"
                     )
 
+                elif result["reason"] == "closed":
+
+                    message = (
+                        "❌ Attendance is already closed"
+                    )
+
+                else:
+
+                    message = (
+                        "❌ Student ID not found"
+                    )
                 break
 
         else:
@@ -251,11 +269,13 @@ def logout():
 @admin_required
 def admin():
 
+    stats = get_attendance_stats()
+
     return render_template(
         "admin.html",
-        message=""
+        message="",
+        stats=stats
     )
-
 
 # =========================
 # GENERATE QR
@@ -365,6 +385,7 @@ def close():
 def color():
 
     color_attendance()
+
 
     return render_template(
         "admin.html",

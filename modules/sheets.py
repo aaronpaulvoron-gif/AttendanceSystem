@@ -287,7 +287,76 @@ def record_attendance(student_id):
         "reason": "not_found"
     }
 
+def get_attendance_stats():
 
+    client = connect_google_sheet()
+
+    sheet = client.open(
+        "Attendance Monitoring System"
+    )
+
+    attendance = sheet.worksheet(
+        "Attendance"
+    )
+
+    values = attendance.get_all_values()
+
+    stats = {
+        "total": 0,
+        "present": 0,
+        "late": 0,
+        "absent": 0
+    }
+
+    if not values:
+        return stats
+
+    headers = values[0]
+
+    today = datetime.now().strftime(
+        "%Y-%m-%d"
+    )
+
+    if today not in headers:
+        return stats
+
+    today_column = headers.index(today)
+
+    for row in values[1:]:
+
+        if not row:
+            continue
+
+        student_id = str(
+            row[0]
+        ).strip()
+
+        if not student_id:
+            continue
+
+        stats["total"] += 1
+
+        if today_column < len(row):
+
+            status = row[today_column]
+
+        else:
+
+            status = "A"
+
+        if status == "P":
+
+            stats["present"] += 1
+
+        elif status == "L":
+
+            stats["late"] += 1
+
+        else:
+
+            stats["absent"] += 1
+
+    return stats
 
 
 # =========================
