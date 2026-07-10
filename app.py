@@ -20,6 +20,7 @@ from modules.sheets import (
     delete_student,
     get_attendance_stats,
     get_qr_token,
+    get_student_report,
     get_students,
     record_attendance,
     save_qr_token
@@ -35,19 +36,13 @@ from modules.security import (
 
 app = Flask(__name__)
 
-
-# This is used for teacher login sessions and
-# device attendance protection.
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "change-this-secret-key"
 )
 
 
-# ==========================================
-# ADMIN LOGIN PROTECTION
-# ==========================================
-
+# Protect teacher pages
 def admin_required(route_function):
 
     @wraps(route_function)
@@ -67,10 +62,7 @@ def admin_required(route_function):
     return protected_route
 
 
-# ==========================================
-# ADMIN DASHBOARD HELPER
-# ==========================================
-
+# Load dashboard information
 def render_admin_dashboard(message=""):
 
     stats = get_attendance_stats()
@@ -129,10 +121,7 @@ def render_admin_dashboard(message=""):
     )
 
 
-# ==========================================
-# STUDENT ATTENDANCE PAGE
-# ==========================================
-
+# Student attendance page
 @app.route(
     "/",
     methods=[
@@ -214,8 +203,6 @@ def home():
 
                 if saved_student_id == student_id:
 
-                    # Check if this browser already submitted
-                    # another Student ID using the same QR.
                     device_student_id = session.get(
                         "attendance_student_id"
                     )
@@ -245,8 +232,6 @@ def home():
 
                     if result["success"]:
 
-                        # Remember this student for the
-                        # current QR session.
                         session[
                             "attendance_student_id"
                         ] = saved_student_id
@@ -341,10 +326,7 @@ def home():
     )
 
 
-# ==========================================
-# TEACHER LOGIN
-# ==========================================
-
+# Teacher login
 @app.route(
     "/login",
     methods=[
@@ -407,14 +389,10 @@ def login():
     )
 
 
-# ==========================================
-# TEACHER LOGOUT
-# ==========================================
-
+# Teacher logout
 @app.route("/logout")
 def logout():
 
-    # Remove teacher login data.
     session.pop(
         "admin_logged_in",
         None
@@ -425,10 +403,7 @@ def logout():
     )
 
 
-# ==========================================
-# ADMIN DASHBOARD
-# ==========================================
-
+# Admin dashboard
 @app.route("/admin")
 @admin_required
 def admin():
@@ -436,10 +411,7 @@ def admin():
     return render_admin_dashboard()
 
 
-# ==========================================
-# GENERATE QR WITH CLOSING TIME
-# ==========================================
-
+# Generate QR
 @app.route(
     "/generate-qr",
     methods=["POST"]
@@ -471,11 +443,8 @@ def generate_qr():
             "❌ Invalid closing time."
         )
 
-    # Create today's date column and mark
-    # registered students Absent by default.
     create_daily_attendance()
 
-    # create_token() must accept close_time.
     token, expiry = create_token(
         close_time
     )
@@ -652,10 +621,7 @@ def generate_qr():
     """
 
 
-# ==========================================
-# CLOSE ATTENDANCE
-# ==========================================
-
+# Close attendance
 @app.route("/close")
 @admin_required
 def close():
@@ -670,10 +636,7 @@ def close():
     )
 
 
-# ==========================================
-# UPDATE ATTENDANCE COLORS
-# ==========================================
-
+# Update attendance colors
 @app.route("/color")
 @admin_required
 def color():
@@ -685,10 +648,7 @@ def color():
     )
 
 
-# ==========================================
-# CLEAR ATTENDANCE
-# ==========================================
-
+# Clear attendance
 @app.route("/clear")
 @admin_required
 def clear():
@@ -700,10 +660,7 @@ def clear():
     )
 
 
-# ==========================================
-# STUDENT MANAGEMENT
-# ==========================================
-
+# Student management
 @app.route(
     "/students",
     methods=[
@@ -764,10 +721,7 @@ def students():
     )
 
 
-# ==========================================
-# DELETE STUDENT
-# ==========================================
-
+# Delete student
 @app.route(
     "/students/delete/<student_id>",
     methods=["POST"]
@@ -775,25 +729,66 @@ def students():
 @admin_required
 def remove_student(student_id):
 
-    deleted = delete_student(
+    delete_student(
         student_id
     )
-
-    if not deleted:
-
-        return redirect(
-            url_for("students")
-        )
 
     return redirect(
         url_for("students")
     )
 
 
-# ==========================================
-# RUN APPLICATION
-# ==========================================
+# Search student
+@app.route(
+    "/student-search",
+    methods=[
+        "GET",
+        "POST"
+    ]
+)
+@admin_required
+def student_search():
 
+    message = ""
+    report = None
+
+    if request.method == "POST":
+
+        student_id = request.form.get(
+            "student_id",
+            ""
+        ).strip()
+
+        if not student_id:
+
+            message = (
+                "❌ Enter a Student ID."
+            )
+
+        else:
+
+            result = get_student_report(
+                student_id
+            )
+
+            if result["success"]:
+
+                report = result
+
+            else:
+
+                message = (
+                    "❌ Student ID not found."
+                )
+
+    return render_template(
+        "student_search.html",
+        message=message,
+        report=report
+    )
+
+
+# Start app
 if __name__ == "__main__":
 
     app.run(

@@ -314,7 +314,179 @@ def get_attendance_status():
 
     return None
 
+def get_student_report(student_id):
 
+    student_id = str(student_id).strip()
+
+    client = connect_google_sheet()
+
+    spreadsheet = client.open(
+        "Attendance Monitoring System"
+    )
+
+    students_sheet = spreadsheet.worksheet(
+        "Students"
+    )
+
+    attendance_sheet = spreadsheet.worksheet(
+        "Attendance"
+    )
+
+    students = students_sheet.get_all_records()
+
+    student_name = None
+
+    for student in students:
+
+        saved_id = str(
+            student.get(
+                "Student ID",
+                ""
+            )
+        ).strip()
+
+        if saved_id == student_id:
+
+            student_name = str(
+                student.get(
+                    "Name",
+                    ""
+                )
+            ).strip()
+
+            break
+
+    if not student_name:
+
+        return {
+            "success": False,
+            "reason": "not_found"
+        }
+
+    values = attendance_sheet.get_all_values()
+
+    report = {
+        "success": True,
+        "student_id": student_id,
+        "name": student_name,
+        "present": 0,
+        "late": 0,
+        "absent": 0,
+        "total_classes": 0,
+        "percentage": 0,
+        "today_status": "No attendance today",
+        "history": []
+    }
+
+    if not values:
+
+        return report
+
+    headers = values[0]
+
+    target_row = None
+
+    for row in values[1:]:
+
+        if not row:
+            continue
+
+        saved_id = str(
+            row[0]
+        ).strip()
+
+        if saved_id == student_id:
+
+            target_row = row
+            break
+
+    if target_row is None:
+
+        return report
+
+    today = datetime.now().strftime(
+        "%Y-%m-%d"
+    )
+
+    for column_index in range(
+        2,
+        len(headers)
+    ):
+
+        attendance_date = headers[
+            column_index
+        ]
+
+        if not attendance_date:
+            continue
+
+        if column_index < len(target_row):
+
+            status = str(
+                target_row[
+                    column_index
+                ]
+            ).strip()
+
+        else:
+
+            status = "A"
+
+        if not status:
+
+            status = "A"
+
+        report["total_classes"] += 1
+
+        if status == "P":
+
+            report["present"] += 1
+            status_text = "Present"
+
+        elif status == "L":
+
+            report["late"] += 1
+            status_text = "Late"
+
+        else:
+
+            report["absent"] += 1
+            status_text = "Absent"
+
+        if attendance_date == today:
+
+            report["today_status"] = (
+                status_text
+            )
+
+        report["history"].append({
+            "date": attendance_date,
+            "status": status,
+            "status_text": status_text
+        })
+
+    if report["total_classes"] > 0:
+
+        attended_classes = (
+            report["present"]
+            +
+            report["late"]
+        )
+
+        report["percentage"] = round(
+            (
+                attended_classes
+                /
+                report["total_classes"]
+            )
+            *
+            100,
+            2
+        )
+
+    report["history"].reverse()
+
+    return report
 # =========================
 # RECORD ATTENDANCE
 # =========================
