@@ -5,44 +5,48 @@ from functools import wraps
 
 from flask import (
     Flask,
+    redirect,
     render_template,
     request,
-    redirect,
-    url_for,
-    session
+    session,
+    url_for
 )
 
 from modules.sheets import (
+    add_student,
+    clear_attendance,
+    color_attendance,
+    create_daily_attendance,
+    delete_student,
+    get_attendance_stats,
+    get_qr_token,
     get_students,
     record_attendance,
-    create_daily_attendance,
-    color_attendance,
-    save_qr_token,
-    get_qr_token,
-    clear_attendance,
-    get_attendance_stats
+    save_qr_token
 )
+
 from modules.qr_generator import create_qr
 
 from modules.security import (
-    create_token,
-    check_token
+    check_token,
+    create_token
 )
 
 
 app = Flask(__name__)
 
 
-
+# This is used for teacher login sessions and
+# device attendance protection.
 app.secret_key = os.environ.get(
     "SECRET_KEY",
-    "attendance-secret-key-change-this"
+    "change-this-secret-key"
 )
 
 
-# =========================
+# ==========================================
 # ADMIN LOGIN PROTECTION
-# =========================
+# ==========================================
 
 def admin_required(route_function):
 
@@ -63,11 +67,79 @@ def admin_required(route_function):
     return protected_route
 
 
-# =========================
-# STUDENT ATTENDANCE PAGE
-# =========================
+# ==========================================
+# ADMIN DASHBOARD HELPER
+# ==========================================
 
-@app.route("/", methods=["GET", "POST"])
+def render_admin_dashboard(message=""):
+
+    stats = get_attendance_stats()
+
+    qr_data = get_qr_token()
+
+    qr_status = "CLOSED"
+    expiry_text = "No active QR"
+
+    if qr_data:
+
+        saved_token = str(
+            qr_data.get(
+                "Token",
+                ""
+            )
+        )
+
+        saved_expiry = str(
+            qr_data.get(
+                "Expiry",
+                ""
+            )
+        )
+
+        if saved_token != "CLOSED":
+
+            try:
+
+                expiry = datetime.fromisoformat(
+                    saved_expiry
+                )
+
+                if datetime.now() <= expiry:
+
+                    qr_status = "OPEN"
+
+                    expiry_text = expiry.strftime(
+                        "%I:%M %p"
+                    )
+
+            except (
+                ValueError,
+                TypeError
+            ):
+
+                qr_status = "CLOSED"
+                expiry_text = "Invalid expiry"
+
+    return render_template(
+        "admin.html",
+        message=message,
+        stats=stats,
+        qr_status=qr_status,
+        expiry_text=expiry_text
+    )
+
+
+# ==========================================
+# STUDENT ATTENDANCE PAGE
+# ==========================================
+
+@app.route(
+    "/",
+    methods=[
+        "GET",
+        "POST"
+    ]
+)
 def home():
 
     token = (
@@ -80,17 +152,36 @@ def home():
         return render_template(
             "index.html",
             token="",
-            message="❌ Scan the attendance QR first"
+            message="❌ Scan the active attendance QR first.",
+            expiry=""
         )
 
     qr_data = get_qr_token()
 
-    if not check_token(token, qr_data):
+    expiry = ""
+
+    if qr_data:
+
+        expiry = str(
+            qr_data.get(
+                "Expiry",
+                ""
+            )
+        )
+
+    if not check_token(
+        token,
+        qr_data
+    ):
 
         return render_template(
             "index.html",
             token=token,
-            message="❌ QR expired or attendance is closed"
+            message=(
+                "❌ QR expired, invalid, "
+                "or attendance is closed."
+            ),
+            expiry=""
         )
 
     message = ""
@@ -102,100 +193,165 @@ def home():
             ""
         ).strip()
 
-        students = get_students()
+        if not student_id:
 
-        for student in students:
-
-            saved_student_id = str(
-                student["Student ID"]
-            ).strip()
-
-            if saved_student_id == student_id:
-
-                # Check whether this browser/device already submitted
-                # attendance for this current QR session.
-                device_student_id = session.get(
-                    "attendance_student_id"
-                )
-
-                device_token = session.get(
-                    "attendance_token"
-                )
-
-                # Same QR session, but trying to submit another Student ID.
-                if (
-                        device_token == token
-                        and device_student_id
-                        and device_student_id != saved_student_id
-                ):
-                    message = (
-                        "❌ This phone or browser has already "
-                        "submitted attendance for another student."
-                    )
-
-                    break
-
-                result = record_attendance(
-                    saved_student_id
-                )
-
-                if result["success"]:
-
-                    session["attendance_student_id"] = (
-                        saved_student_id
-                    )
-
-                    session["attendance_token"] = token
-
-                    if result["status"] == "P":
-
-                        message = (
-                            f'✅ {student["Name"]} '
-                            "is marked Present"
-                        )
-
-                    elif result["status"] == "L":
-
-                        message = (
-                            f'⚠️ {student["Name"]} '
-                            "is marked Late"
-                        )
-
-                elif result["reason"] == "duplicate":
-
-                    message = (
-                        "⚠️ Attendance already recorded"
-                    )
-
-                elif result["reason"] == "closed":
-
-                    message = (
-                        "❌ Attendance is already closed"
-                    )
-
-                else:
-
-                    message = (
-                        "❌ Student ID not found"
-                    )
-                break
+            message = (
+                "❌ Please enter your Student ID."
+            )
 
         else:
 
-            message = "❌ Student ID not found"
+            students = get_students()
+
+            for student in students:
+
+                saved_student_id = str(
+                    student.get(
+                        "Student ID",
+                        ""
+                    )
+                ).strip()
+
+                if saved_student_id == student_id:
+
+                    # Check if this browser already submitted
+                    # another Student ID using the same QR.
+                    device_student_id = session.get(
+                        "attendance_student_id"
+                    )
+
+                    device_token = session.get(
+                        "attendance_token"
+                    )
+
+                    if (
+                        device_token == token
+                        and device_student_id
+                        and device_student_id
+                        != saved_student_id
+                    ):
+
+                        message = (
+                            "❌ This phone or browser has "
+                            "already submitted attendance "
+                            "for another student."
+                        )
+
+                        break
+
+                    result = record_attendance(
+                        saved_student_id
+                    )
+
+                    if result["success"]:
+
+                        # Remember this student for the
+                        # current QR session.
+                        session[
+                            "attendance_student_id"
+                        ] = saved_student_id
+
+                        session[
+                            "attendance_token"
+                        ] = token
+
+                        if result["status"] == "P":
+
+                            message = (
+                                f'✅ {student["Name"]} '
+                                "is marked Present."
+                            )
+
+                        elif result["status"] == "L":
+
+                            message = (
+                                f'⚠️ {student["Name"]} '
+                                "is marked Late."
+                            )
+
+                    elif (
+                        result["reason"]
+                        == "duplicate"
+                    ):
+
+                        previous_status = result.get(
+                            "status",
+                            ""
+                        )
+
+                        if previous_status == "P":
+
+                            status_text = "Present"
+
+                        elif previous_status == "L":
+
+                            status_text = "Late"
+
+                        else:
+
+                            status_text = (
+                                "already recorded"
+                            )
+
+                        message = (
+                            "⚠️ Attendance already "
+                            f"recorded as {status_text}."
+                        )
+
+                    elif (
+                        result["reason"]
+                        == "closed"
+                    ):
+
+                        message = (
+                            "❌ The attendance time "
+                            "window is already closed."
+                        )
+
+                    elif (
+                        result["reason"]
+                        == "date_not_found"
+                    ):
+
+                        message = (
+                            "❌ Today's attendance "
+                            "column could not be created."
+                        )
+
+                    else:
+
+                        message = (
+                            "❌ Attendance could not "
+                            "be recorded."
+                        )
+
+                    break
+
+            else:
+
+                message = (
+                    "❌ Student ID not found."
+                )
 
     return render_template(
         "index.html",
         token=token,
-        message=message
+        message=message,
+        expiry=expiry
     )
 
 
-# =========================
+# ==========================================
 # TEACHER LOGIN
-# =========================
+# ==========================================
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route(
+    "/login",
+    methods=[
+        "GET",
+        "POST"
+    ]
+)
 def login():
 
     if session.get("admin_logged_in"):
@@ -211,7 +367,7 @@ def login():
         username = request.form.get(
             "username",
             ""
-        )
+        ).strip()
 
         password = request.form.get(
             "password",
@@ -233,13 +389,17 @@ def login():
             and password == correct_password
         ):
 
-            session["admin_logged_in"] = True
+            session[
+                "admin_logged_in"
+            ] = True
 
             return redirect(
                 url_for("admin")
             )
 
-        message = "Incorrect username or password."
+        message = (
+            "Incorrect username or password."
+        )
 
     return render_template(
         "login.html",
@@ -247,75 +407,108 @@ def login():
     )
 
 
-# =========================
+# ==========================================
 # TEACHER LOGOUT
-# =========================
+# ==========================================
 
 @app.route("/logout")
 def logout():
 
-    session.clear()
+    # Remove teacher login data.
+    session.pop(
+        "admin_logged_in",
+        None
+    )
 
     return redirect(
         url_for("login")
     )
 
 
-# =========================
+# ==========================================
 # ADMIN DASHBOARD
-# =========================
+# ==========================================
 
 @app.route("/admin")
 @admin_required
 def admin():
 
-    stats = get_attendance_stats()
+    return render_admin_dashboard()
 
-    return render_template(
-        "admin.html",
-        message="",
-        stats=stats
-    )
 
-# =========================
-# GENERATE QR
-# =========================
+# ==========================================
+# GENERATE QR WITH CLOSING TIME
+# ==========================================
 
-@app.route("/generate-qr")
+@app.route(
+    "/generate-qr",
+    methods=["POST"]
+)
 @admin_required
 def generate_qr():
 
-    # Create today's attendance.
+    close_time_text = request.form.get(
+        "close_time",
+        ""
+    ).strip()
+
+    if not close_time_text:
+
+        return render_admin_dashboard(
+            "❌ Please choose an attendance closing time."
+        )
+
+    try:
+
+        close_time = datetime.strptime(
+            close_time_text,
+            "%H:%M"
+        ).time()
+
+    except ValueError:
+
+        return render_admin_dashboard(
+            "❌ Invalid closing time."
+        )
+
+    # Create today's date column and mark
+    # registered students Absent by default.
     create_daily_attendance()
 
-    # Create a secure QR token.
-    token, expiry = create_token()
+    # create_token() must accept close_time.
+    token, expiry = create_token(
+        close_time
+    )
 
-    # Save it in the QR worksheet.
     save_qr_token(
         token,
         expiry
     )
 
-    # Generate the QR image.
     create_qr(
         token
     )
 
-    return f"""
+    expiry_iso = expiry.isoformat()
 
+    return f"""
     <!DOCTYPE html>
 
-    <html>
+    <html lang="en">
 
     <head>
 
+        <meta charset="UTF-8">
+
         <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0"
+            content="width=device-width,
+            initial-scale=1.0"
         >
 
-        <title>Attendance QR</title>
+        <title>
+            Attendance QR
+        </title>
 
         <link
             rel="stylesheet"
@@ -328,7 +521,14 @@ def generate_qr():
 
         <div class="container">
 
-            <h1>Attendance QR</h1>
+            <h1>
+                Attendance QR
+            </h1>
+
+            <p class="description">
+                Students should scan this QR
+                and enter their official Student ID.
+            </p>
 
             <img
                 src="/static/qr/attendance_qr.png?token={token}"
@@ -337,29 +537,124 @@ def generate_qr():
             >
 
             <h3>
-                Valid until:
+                Closes at:
                 {expiry.strftime("%I:%M %p")}
             </h3>
 
+            <div
+                id="qr-countdown"
+                class="attendance-timer"
+                data-expiry="{expiry_iso}"
+            >
+
+                <p>
+                    Time remaining
+                </p>
+
+                <strong id="qr-countdown-text">
+                    Calculating...
+                </strong>
+
+            </div>
+
             <a
                 href="/admin"
-                class="admin-button gray-button"
+                class="dashboard-button secondary-button"
             >
                 Back to Dashboard
             </a>
 
         </div>
 
+        <script>
+
+            const timerBox =
+                document.getElementById(
+                    "qr-countdown"
+                );
+
+            const countdownText =
+                document.getElementById(
+                    "qr-countdown-text"
+                );
+
+            const expiryTime =
+                new Date(
+                    timerBox.dataset.expiry
+                ).getTime();
+
+            function updateQrCountdown() {{
+
+                const currentTime =
+                    new Date().getTime();
+
+                const remaining =
+                    expiryTime - currentTime;
+
+                if (remaining <= 0) {{
+
+                    countdownText.textContent =
+                        "Attendance Closed";
+
+                    return;
+                }}
+
+                const hours = Math.floor(
+                    remaining
+                    / (1000 * 60 * 60)
+                );
+
+                const minutes = Math.floor(
+                    (
+                        remaining
+                        % (1000 * 60 * 60)
+                    )
+                    / (1000 * 60)
+                );
+
+                const seconds = Math.floor(
+                    (
+                        remaining
+                        % (1000 * 60)
+                    )
+                    / 1000
+                );
+
+                countdownText.textContent =
+                    String(hours).padStart(
+                        2,
+                        "0"
+                    )
+                    + ":"
+                    + String(minutes).padStart(
+                        2,
+                        "0"
+                    )
+                    + ":"
+                    + String(seconds).padStart(
+                        2,
+                        "0"
+                    );
+            }}
+
+            updateQrCountdown();
+
+            setInterval(
+                updateQrCountdown,
+                1000
+            );
+
+        </script>
+
     </body>
 
     </html>
-
     """
 
 
-# =========================
+# ==========================================
 # CLOSE ATTENDANCE
-# =========================
+# ==========================================
 
 @app.route("/close")
 @admin_required
@@ -370,15 +665,14 @@ def close():
         datetime.now()
     )
 
-    return render_template(
-        "admin.html",
-        message="🔒 Attendance closed successfully"
+    return render_admin_dashboard(
+        "🔒 Attendance closed successfully."
     )
 
 
-# =========================
-# UPDATE COLORS
-# =========================
+# ==========================================
+# UPDATE ATTENDANCE COLORS
+# ==========================================
 
 @app.route("/color")
 @admin_required
@@ -386,16 +680,14 @@ def color():
 
     color_attendance()
 
-
-    return render_template(
-        "admin.html",
-        message="✅ Attendance colors updated"
+    return render_admin_dashboard(
+        "✅ Attendance colors updated."
     )
 
 
-# =========================
+# ==========================================
 # CLEAR ATTENDANCE
-# =========================
+# ==========================================
 
 @app.route("/clear")
 @admin_required
@@ -403,15 +695,104 @@ def clear():
 
     clear_attendance()
 
-    return render_template(
-        "admin.html",
-        message="✅ Attendance sheet cleared"
+    return render_admin_dashboard(
+        "✅ Attendance sheet cleared."
     )
 
 
-# =========================
+# ==========================================
+# STUDENT MANAGEMENT
+# ==========================================
+
+@app.route(
+    "/students",
+    methods=[
+        "GET",
+        "POST"
+    ]
+)
+@admin_required
+def students():
+
+    message = ""
+
+    if request.method == "POST":
+
+        student_id = request.form.get(
+            "student_id",
+            ""
+        ).strip()
+
+        name = request.form.get(
+            "name",
+            ""
+        ).strip()
+
+        result = add_student(
+            student_id,
+            name
+        )
+
+        if result["success"]:
+
+            message = (
+                "✅ Student added successfully."
+            )
+
+        elif (
+            result["reason"]
+            == "duplicate"
+        ):
+
+            message = (
+                "⚠️ Student ID already exists."
+            )
+
+        else:
+
+            message = (
+                "❌ Student ID and name "
+                "are required."
+            )
+
+    student_list = get_students()
+
+    return render_template(
+        "students.html",
+        students=student_list,
+        message=message
+    )
+
+
+# ==========================================
+# DELETE STUDENT
+# ==========================================
+
+@app.route(
+    "/students/delete/<student_id>",
+    methods=["POST"]
+)
+@admin_required
+def remove_student(student_id):
+
+    deleted = delete_student(
+        student_id
+    )
+
+    if not deleted:
+
+        return redirect(
+            url_for("students")
+        )
+
+    return redirect(
+        url_for("students")
+    )
+
+
+# ==========================================
 # RUN APPLICATION
-# =========================
+# ==========================================
 
 if __name__ == "__main__":
 

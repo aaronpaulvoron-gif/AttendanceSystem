@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Student Management
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+<body class="dashboard-body">
+
+    <main class="dashboard-container">
+
+        <header class="dashboard-header">
+
+            <div>
+
+                <p class="dashboard-label">
+                    Attendance Monitoring System
+                </p>
+
+                <h1>
+                    Student Management
+                </h1>
+
+                <p class="dashboard-description">
+                    Add and manage registered students.
+                </p>
+
+            </div>
+
+            <a
+                href="{{ url_for('admin') }}"
+                class="dashboard-button secondary-button"
+            >
+                Back to Dashboard
+            </a>
+
+        </header>
+
+        {% if message %}
+
+            <div class="dashboard-message">
+                {{ message }}
+            </div>
+
+        {% endif %}
+
+        <section class="management-card">
+
+            <h2>
+                Add Student
+            </h2>
+
+            <form method="POST">
+
+                <label for="student_id">
+                    Student ID
+                </label>
+
+                <input
+                    id="student_id"
+                    name="student_id"
+                    placeholder="02-2425-008111"
+                    autocomplete="off"
+                    required
+                >
+
+                <label
+                    for="name"
+                    class="second-label"
+                >
+                    Full Name
+                </label>
+
+                <input
+                    id="name"
+                    name="name"
+                    placeholder="Juan Dela Cruz"
+                    autocomplete="off"
+                    required
+                >
+
+                <button type="submit">
+                    Add Student
+                </button>
+
+            </form>
+
+        </section>
+
+        <section class="management-card student-list-card">
+
+            <h2>
+                Registered Students
+            </h2>
+
+            <div class="table-wrapper">
+
+                <table class="student-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Student ID
+                            </th>
+
+                            <th>
+                                Name
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for student in students %}
+
+                            <tr>
+
+                                <td>
+                                    {{ student["Student ID"] }}
+                                </td>
+
+                                <td>
+                                    {{ student["Name"] }}
+                                </td>
+
+                                <td>
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for(
+                                            'remove_student',
+                                            student_id=student['Student ID']
+                                        ) }}"
+                                        onsubmit="return confirm(
+                                            'Delete this student?'
+                                        );"
+                                    >
+
+                                        <button
+                                            type="submit"
+                                            class="small-delete-button"
+                                        >
+                                            Delete
+                                        </button>
+
+                                    </form>
+
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="empty-table"
+                                >
+                                    No registered students.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

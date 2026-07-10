@@ -12,6 +12,9 @@ from gspread_formatting import (
 )
 
 
+# =========================
+# GOOGLE SHEETS CONNECTION
+# =========================
 
 def connect_google_sheet():
 
@@ -20,12 +23,10 @@ def connect_google_sheet():
         "https://www.googleapis.com/auth/drive"
     ]
 
-
-    # Render uses Environment Variables
+    # Render uses Environment Variables.
     google_credentials = os.environ.get(
         "GOOGLE_CREDENTIALS"
     )
-
 
     if google_credentials:
 
@@ -34,41 +35,38 @@ def connect_google_sheet():
             scopes=scopes
         )
 
-
     else:
 
-        # Local computer fallback
+        # Local computer fallback.
         creds = Credentials.from_service_account_file(
             "credentials.json",
             scopes=scopes
         )
 
-
     client = gspread.authorize(
         creds
     )
 
-
     return client
 
 
+# =========================
+# GET STUDENTS
+# =========================
 
 def get_students():
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-
-    students = sheet.worksheet(
+    students_sheet = spreadsheet.worksheet(
         "Students"
     )
 
-
-    return students.get_all_records()
-
+    return students_sheet.get_all_records()
 
 
 # =========================
@@ -79,15 +77,15 @@ def create_daily_attendance():
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-    students_sheet = sheet.worksheet(
+    students_sheet = spreadsheet.worksheet(
         "Students"
     )
 
-    attendance = sheet.worksheet(
+    attendance = spreadsheet.worksheet(
         "Attendance"
     )
 
@@ -118,7 +116,7 @@ def create_daily_attendance():
 
     existing_ids = set()
 
-    # Get IDs already inside the Attendance sheet.
+    # Get student IDs already inside the Attendance sheet.
     for row in attendance_values[1:]:
 
         if len(row) >= 1:
@@ -137,14 +135,23 @@ def create_daily_attendance():
     for student in students:
 
         student_id = str(
-            student["Student ID"]
+            student.get(
+                "Student ID",
+                ""
+            )
         ).strip()
 
         student_name = str(
-            student["Name"]
+            student.get(
+                "Name",
+                ""
+            )
         ).strip()
 
-        if student_id not in existing_ids:
+        if (
+            student_id
+            and student_id not in existing_ids
+        ):
 
             attendance.append_row([
                 student_id,
@@ -155,12 +162,11 @@ def create_daily_attendance():
                 student_id
             )
 
-    # Refresh headers after syncing students.
+    # Refresh the headers.
     headers = attendance.row_values(1)
 
-    # If today's date already exists, do nothing.
+    # Do not create the same date twice.
     if today in headers:
-
         return
 
     # Add today's date as a new column.
@@ -189,19 +195,114 @@ def create_daily_attendance():
             today_column,
             "A"
         )
+# =========================
+# ADD STUDENT
+# =========================
 
+def add_student(student_id, name):
 
+    student_id = str(student_id).strip()
+    name = str(name).strip()
 
+    if not student_id or not name:
+
+        return {
+            "success": False,
+            "reason": "missing_fields"
+        }
+
+    client = connect_google_sheet()
+
+    spreadsheet = client.open(
+        "Attendance Monitoring System"
+    )
+
+    students_sheet = spreadsheet.worksheet(
+        "Students"
+    )
+
+    students = students_sheet.get_all_records()
+
+    for student in students:
+
+        saved_id = str(
+            student.get(
+                "Student ID",
+                ""
+            )
+        ).strip()
+
+        if saved_id == student_id:
+
+            return {
+                "success": False,
+                "reason": "duplicate"
+            }
+
+    students_sheet.append_row([
+        student_id,
+        name
+    ])
+
+    return {
+        "success": True
+    }
 
 
 # =========================
-# RECORD PRESENT
+# DELETE STUDENT
 # =========================
+
+def delete_student(student_id):
+
+    student_id = str(student_id).strip()
+
+    client = connect_google_sheet()
+
+    spreadsheet = client.open(
+        "Attendance Monitoring System"
+    )
+
+    students_sheet = spreadsheet.worksheet(
+        "Students"
+    )
+
+    values = students_sheet.get_all_values()
+
+    for row_number, row in enumerate(
+        values[1:],
+        start=2
+    ):
+
+        if not row:
+            continue
+
+        saved_id = str(
+            row[0]
+        ).strip()
+
+        if saved_id == student_id:
+
+            students_sheet.delete_rows(
+                row_number
+            )
+
+            return True
+
+    return False
+
+# =========================
+# ATTENDANCE TIME STATUS
+# =========================
+
 def get_attendance_status():
 
     current_time = datetime.now().time()
 
-    # Change these times based on your class schedule.
+    # Change these based on your class schedule.
+    # Until 8:00 AM = Present
+    # Until 8:15 AM = Late
+    # After 8:15 AM = Closed
     present_until = time(8, 0)
     late_until = time(8, 15)
 
@@ -213,17 +314,25 @@ def get_attendance_status():
 
     return None
 
+
+# =========================
+# RECORD ATTENDANCE
+# =========================
+
 def record_attendance(student_id):
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-    attendance = sheet.worksheet(
+    attendance = spreadsheet.worksheet(
         "Attendance"
     )
+
+    # Make sure today's attendance column exists.
+    create_daily_attendance()
 
     headers = attendance.row_values(1)
 
@@ -232,14 +341,20 @@ def record_attendance(student_id):
     )
 
     if today not in headers:
-        create_daily_attendance()
-        headers = attendance.row_values(1)
 
+        return {
+            "success": False,
+            "reason": "date_not_found"
+        }
+
+    # Google Sheets columns start at 1.
     today_column = headers.index(today) + 1
 
     status = get_attendance_status()
 
+    # Attendance time is already closed.
     if status is None:
+
         return {
             "success": False,
             "reason": "closed"
@@ -252,23 +367,30 @@ def record_attendance(student_id):
         start=2
     ):
 
-        saved_id = str(
-            row["Student ID"]
+        saved_student_id = str(
+            row.get(
+                "Student ID",
+                ""
+            )
         ).strip()
 
-        if saved_id == str(student_id).strip():
+        if saved_student_id == str(student_id).strip():
 
-            current = attendance.cell(
+            current_status = attendance.cell(
                 row_number,
                 today_column
             ).value
 
-            if current in ["P", "L"]:
+            # Prevent duplicate attendance.
+            if current_status in [
+                "P",
+                "L"
+            ]:
 
                 return {
                     "success": False,
                     "reason": "duplicate",
-                    "status": current
+                    "status": current_status
                 }
 
             attendance.update_cell(
@@ -287,15 +409,20 @@ def record_attendance(student_id):
         "reason": "not_found"
     }
 
+
+# =========================
+# ATTENDANCE STATISTICS
+# =========================
+
 def get_attendance_stats():
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-    attendance = sheet.worksheet(
+    attendance = spreadsheet.worksheet(
         "Attendance"
     )
 
@@ -317,9 +444,19 @@ def get_attendance_stats():
         "%Y-%m-%d"
     )
 
+    # No attendance column for today yet.
     if today not in headers:
+
+        stats["total"] = max(
+            len(values) - 1,
+            0
+        )
+
+        stats["absent"] = stats["total"]
+
         return stats
 
+    # List indexes start at 0.
     today_column = headers.index(today)
 
     for row in values[1:]:
@@ -338,7 +475,9 @@ def get_attendance_stats():
 
         if today_column < len(row):
 
-            status = row[today_column]
+            status = str(
+                row[today_column]
+            ).strip()
 
         else:
 
@@ -367,97 +506,84 @@ def save_qr_token(token, expiry):
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-
-    qr = sheet.worksheet(
+    qr_sheet = spreadsheet.worksheet(
         "QR"
     )
 
+    qr_sheet.clear()
 
-    qr.clear()
+    qr_sheet.append_row([
+        "Token",
+        "Expiry"
+    ])
 
-
-    qr.append_row(
-        [
-            "Token",
-            "Expiry"
-        ]
-    )
-
-
-    qr.append_row(
-        [
-            token,
-            expiry.isoformat()
-        ]
-    )
-
-
-
+    qr_sheet.append_row([
+        token,
+        expiry.isoformat()
+    ])
 
 
 def get_qr_token():
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-
-    qr = sheet.worksheet(
+    qr_sheet = spreadsheet.worksheet(
         "QR"
     )
 
-
-    data = qr.get_all_records()
-
+    data = qr_sheet.get_all_records()
 
     if not data:
         return None
 
-
     return data[0]
 
 
-
-
-
 # =========================
-# COLORS
+# ATTENDANCE COLORS
 # =========================
 
 def color_attendance():
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-
-    attendance = sheet.worksheet(
+    attendance = spreadsheet.worksheet(
         "Attendance"
     )
 
-
     values = attendance.get_all_values()
 
+    if not values:
+        return
 
+    # Start at row 2 and column 3.
+    # Columns 1 and 2 are Student ID and Name.
+    for row_number in range(
+        2,
+        len(values) + 1
+    ):
 
-    for r in range(2, len(values)+1):
-
-        for c in range(3, len(values[0])+1):
-
+        for column_number in range(
+            3,
+            len(values[0]) + 1
+        ):
 
             cell = attendance.cell(
-                r,
-                c
+                row_number,
+                column_number
             )
-
 
             if cell.value == "P":
 
@@ -472,6 +598,7 @@ def color_attendance():
                         )
                     )
                 )
+
             elif cell.value == "L":
 
                 format_cell_range(
@@ -485,7 +612,6 @@ def color_attendance():
                         )
                     )
                 )
-
 
             elif cell.value == "A":
 
@@ -502,33 +628,25 @@ def color_attendance():
                 )
 
 
-
-
-
 # =========================
-# CLEAR TEST DATA
+# CLEAR ATTENDANCE DATA
 # =========================
 
 def clear_attendance():
 
     client = connect_google_sheet()
 
-    sheet = client.open(
+    spreadsheet = client.open(
         "Attendance Monitoring System"
     )
 
-
-    attendance = sheet.worksheet(
+    attendance = spreadsheet.worksheet(
         "Attendance"
     )
 
-
     attendance.clear()
 
-
-    attendance.append_row(
-        [
-            "Student ID",
-            "Name"
-        ]
-    )
+    attendance.append_row([
+        "Student ID",
+        "Name"
+    ])

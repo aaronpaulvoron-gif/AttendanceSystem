@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -9,141 +10,363 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Teacher Dashboard</title>
+    <title>
+        Teacher Dashboard
+    </title>
 
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+
 </head>
 
-<body>
+<body class="dashboard-body">
 
-    <div class="admin-container">
+    <main class="dashboard-container">
 
-        <div class="admin-header">
+        <!-- ========================= -->
+        <!-- HEADER -->
+        <!-- ========================= -->
+
+        <header class="dashboard-header">
 
             <div>
-                <h1>Teacher Dashboard</h1>
 
-                <p class="description">
-                    Manage today's attendance session.
+                <p class="dashboard-label">
+                    Attendance Monitoring System
                 </p>
+
+                <h1>
+                    Teacher Dashboard
+                </h1>
+
+                <p class="dashboard-description">
+                    Welcome! Manage today's attendance session.
+                </p>
+
             </div>
 
             <a
                 href="{{ url_for('logout') }}"
-                class="admin-button gray-button"
+                class="dashboard-button secondary-button"
             >
-                Log Out
+                Logout
             </a>
 
-        </div>
+        </header>
+
+
+
+        <!-- ========================= -->
+        <!-- MESSAGE -->
+        <!-- ========================= -->
 
         {% if message %}
 
-            <div class="message">
+            <div class="dashboard-message">
+
                 {{ message }}
+
             </div>
 
         {% endif %}
 
-        <div class="admin-grid">
 
-            <div class="admin-card">
-<div class="stats-grid">
 
-    <div class="stat-card">
-        <span>Total Students</span>
-        <strong>{{ stats.total }}</strong>
-    </div>
+        <!-- ========================= -->
+        <!-- STATISTICS -->
+        <!-- ========================= -->
 
-    <div class="stat-card present-card">
-        <span>Present</span>
-        <strong>{{ stats.present }}</strong>
-    </div>
+        <section class="stats-grid">
 
-    <div class="stat-card late-card">
-        <span>Late</span>
-        <strong>{{ stats.late }}</strong>
-    </div>
+            <article class="stat-card total-card">
 
-    <div class="stat-card absent-card">
-        <span>Absent</span>
-        <strong>{{ stats.absent }}</strong>
-    </div>
+                <p>Total Students</p>
 
-</div>
-                <h2>Generate Attendance</h2>
+                <strong>
+                    {{ stats.total }}
+                </strong>
 
-                <p>
-                    Create today's attendance column and generate a new QR code.
+            </article>
+
+
+
+            <article class="stat-card present-card">
+
+                <p>Present</p>
+
+                <strong>
+                    {{ stats.present }}
+                </strong>
+
+            </article>
+
+
+
+            <article class="stat-card late-card">
+
+                <p>Late</p>
+
+                <strong>
+                    {{ stats.late }}
+                </strong>
+
+            </article>
+
+
+
+            <article class="stat-card absent-card">
+
+                <p>Absent</p>
+
+                <strong>
+                    {{ stats.absent }}
+                </strong>
+
+            </article>
+
+        </section>
+
+
+
+        <!-- ========================= -->
+        <!-- QR STATUS -->
+        <!-- ========================= -->
+
+        <section class="dashboard-panel">
+
+            <div>
+
+                <p class="panel-label">
+
+                    Current Session
+
                 </p>
+
+                <h2>
+
+                    QR Status
+
+                    <span class="qr-status {{ qr_status|lower }}">
+
+                        {{ qr_status }}
+
+                    </span>
+
+                </h2>
+
+                <p class="dashboard-description">
+
+                    QR expires:
+
+                    <strong>
+
+                        {{ expiry_text }}
+
+                    </strong>
+
+                </p>
+
+            </div>
+
+
+
+            <div class="dashboard-actions">
 
                 <a
                     href="{{ url_for('generate_qr') }}"
-                    class="admin-button"
+                    class="dashboard-button"
                 >
-                    Generate QR
+                    📱 Generate QR
                 </a>
-
-            </div>
-
-            <div class="admin-card">
-
-                <h2>Close Attendance</h2>
-
-                <p>
-                    Disable the current QR code so students cannot submit anymore.
-                </p>
 
                 <a
-                    href="{{ url_for('close') }}"
-                    class="admin-button red-button"
+                    href="{{ url_for('students') }}"
+                    class="dashboard-button secondary-button"
                 >
-                    Close Attendance
+                    👨‍🎓 Students
                 </a>
-
-            </div>
-
-            <div class="admin-card">
-
-                <h2>Update Colors</h2>
-
-                <p>
-                    Color Present cells green and Absent cells red.
-                </p>
 
                 <a
                     href="{{ url_for('color') }}"
-                    class="admin-button yellow-button"
+                    class="dashboard-button warning-button"
                 >
-                    Update Colors
+                    🎨 Update Colors
+                </a>
+
+                <a
+                    href="{{ url_for('close') }}"
+                    class="dashboard-button danger-button"
+                >
+                    🔒 Close Attendance
                 </a>
 
             </div>
 
-            <div class="admin-card">
+        </section>
 
-                <h2>Clear Test Data</h2>
+
+
+        <!-- ========================= -->
+        <!-- MANAGEMENT -->
+        <!-- ========================= -->
+
+        <section class="management-grid">
+
+            <article class="management-card">
+
+                <h2>
+
+                    Attendance Sheet
+
+                </h2>
 
                 <p>
-                    Reset the Attendance worksheet. Use this carefully.
+
+                    Reset today's attendance sheet for testing.
+
                 </p>
 
                 <a
                     href="{{ url_for('clear') }}"
-                    class="admin-button red-button"
-                    onclick="return confirm('Are you sure you want to clear attendance?');"
+                    class="dashboard-button danger-button"
+                    onclick="return confirm('Clear Attendance?');"
                 >
+
                     Clear Attendance
+
                 </a>
 
-            </div>
+            </article>
 
-        </div>
 
-    </div>
+
+            <article class="management-card">
+
+                <h2>
+
+                    System Status
+
+                </h2>
+
+                <table class="status-table">
+
+                    <tr>
+
+                        <td>
+
+                            Google Sheets
+
+                        </td>
+
+                        <td>
+
+                            🟢 Connected
+
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>
+
+                            Render Server
+
+                        </td>
+
+                        <td>
+
+                            🟢 Online
+
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>
+
+                            QR Security
+
+                        </td>
+
+                        <td>
+
+                            🟢 Enabled
+
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>
+
+                            Duplicate Protection
+
+                        </td>
+
+                        <td>
+
+                            🟢 Enabled
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
+            </article>
+
+        </section>
+
+
+
+        <!-- ========================= -->
+        <!-- FUTURE FEATURES -->
+        <!-- ========================= -->
+
+        <section class="management-grid">
+
+            <article class="management-card">
+
+                <h2>
+
+                    🚧 Coming Soon
+
+                </h2>
+
+                <ul>
+
+                    <li>
+                        Student Search
+                    </li>
+
+                    <li>
+                        Attendance Reports
+                    </li>
+
+                    <li>
+                        Attendance Percentage
+                    </li>
+
+                    <li>
+                        Export Excel
+                    </li>
+
+                    <li>
+                        Export PDF
+                    </li>
+
+                </ul>
+
+            </article>
+
+        </section>
+
+    </main>
 
 </body>
 
